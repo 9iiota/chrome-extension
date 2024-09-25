@@ -84,9 +84,17 @@ function createLoopContainer()
                 loopStartInput.value = '00:00';
                 loopStartInput.addEventListener('keydown', (event) =>
                 {
-                    if (event.key === 'Enter' && timeToSeconds(loopStartInput.value))
+                    if (event.key === 'Enter')
                     {
-                        alert(loopStartInput.value);
+                        const loopStartInputValue = timeToSeconds(loopStartInput.value);
+                        if (loopStartInputValue !== false && loopStartInputValue >= 0 && loopStartInputValue <= videoDurationSeconds)
+                        {
+                            leftMarginPercentageInt = (loopStartInputValue / videoDurationSeconds) * 100;
+                            widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
+
+                            loopSliderUnselected.style.width = `${widthPercentageInt}%`;
+                            loopSliderUnselected.style.marginLeft = `${leftMarginPercentageInt}%`;
+                        }
                     }
                 });
 
@@ -96,7 +104,15 @@ function createLoopContainer()
                 {
                     if (event.key === 'Enter')
                     {
-                        console.log(loopEndInput.value);
+                        const loopEndInputValue = timeToSeconds(loopEndInput.value);
+                        if (loopEndInputValue !== false && loopEndInputValue >= 0 && loopEndInputValue <= videoDurationSeconds)
+                        {
+                            rightMarginPercentageInt = 100 - (loopEndInputValue / videoDurationSeconds) * 100;
+                            widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
+
+                            loopSliderUnselected.style.width = `${widthPercentageInt}%`;
+                            loopSliderUnselected.style.marginRight = `${rightMarginPercentageInt}%`;
+                        }
                     }
                 });
 
@@ -118,7 +134,9 @@ function timeToSeconds(time)
 {
     try
     {
-        const regex = /^(?:\d{2}:\d{2}|\d{2}:\d{2}:\d{2})$/;
+        // This regex will match the following:
+        // 0:00 - 9: 59 | 10:00 - 59: 59 | 1:00:00 - 9: 59: 59 | 10:00:00 - 99: 59: 59 | 100:00:00 - 999: 59: 59
+        const regex = /^(\d{1}:[0-5]{1}\d{1})$|^([1-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$/;
         const parts = time.toString().split(':');
 
         if (regex.test(time))
