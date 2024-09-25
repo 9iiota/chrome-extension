@@ -1,0 +1,76 @@
+.loop-button
+{
+    margin-left: 8px;
+}
+
+.loop-container
+{
+    background: none 0% 0% / auto repeat scroll padding-box border-box rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 14px;
+    height: 104px;
+    line-height: 20px;
+    margin: 12px 12px 0 0;
+}
+
+.loop-slider-container
+{
+    margin: 12px;
+}
+
+.loop-slider-foreground
+{
+    position: relative;
+    height: 9px;
+    cursor: pointer;
+    user-select: none;
+    background-color: #aaaaaa;
+    /* padding-left: 6px; */
+}
+
+.loop-slider-background
+{
+    position: relative;
+    /* z-index: 9; */
+    height: 100%;
+    width: 100%;
+    margin-left: 0px;
+    margin-right: 0px;
+    right: initial;
+    background-color: #f1f1f1;
+}
+
+.loop-slider-start-pointer
+{
+    background-color: var(--yt-endpoint-hover-color);
+    border-color: rgb(234, 234, 234);
+    border-image: initial;
+    border-radius: 8px;
+    border-style: solid;
+    border-width: 5px;
+    cursor: move;
+    height: 6px;
+    margin-left: -8px;
+    position: absolute;
+    top: -4px;
+    width: 6px;
+    z-index: 941;
+}
+
+.loop-slider-end-pointer
+{
+    background-color: var(--yt-endpoint-hover-color);
+    border-color: rgb(234, 234, 234);
+    border-image: initial;
+    border-radius: 8px;
+    border-style: solid;
+    border-width: 5px;
+    cursor: move;
+    float: right;
+    height: 6px;
+    margin-right: -8px;
+    position: relative;
+    top: -4px;
+    width: 6px;
+    z-index: 941;
+}
