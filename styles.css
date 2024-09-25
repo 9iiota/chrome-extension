@@ -23,9 +23,9 @@
     background-color: #aaaaaa;
     cursor: pointer;
     height: 9px;
-    /* padding-left: 6px; */
     position: relative;
     user-select: none;
+    z-index: 2;
 }
 
 .loop-slider-unselected
@@ -37,12 +37,12 @@
     position: relative;
     right: initial;
     width: 100%;
-    /* z-index: 9; */
+    z-index: 1;
 }
 
 .loop-slider-start-pointer
 {
-    background-color: var(--yt-endpoint-hover-color);
+    background-color: rgb(234, 234, 234);
     border-color: rgb(234, 234, 234);
     border-image: initial;
     border-radius: 8px;
@@ -54,12 +54,12 @@
     position: absolute;
     top: -4px;
     width: 6px;
-    z-index: 941;
+    z-index: 3;
 }
 
 .loop-slider-end-pointer
 {
-    background-color: var(--yt-endpoint-hover-color);
+    background-color: rgb(234, 234, 234);
     border-color: rgb(234, 234, 234);
     border-image: initial;
     border-radius: 8px;
@@ -72,5 +72,57 @@
     position: relative;
     top: -4px;
     width: 6px;
-    z-index: 941;
+    z-index: 4;
+}
+
+.loop-slider-start-pointer:hover,
+.loop-slider-start-pointer:active,
+.loop-slider-end-pointer:hover,
+.loop-slider-end-pointer:active
+{
+    background-color: #3f3f3f;
+    border-color: #3f3f3f;
+}
+
+.start-pointer-tooltip
+{
+    background-color: rgb(234, 234, 234);
+    border-radius: 2px;
+    height: 20px;
+    left: -25px;
+    position: absolute;
+    top: 15px;
+    width: 50px;
+}
+
+.end-pointer-tooltip
+{
+    background-color: rgb(234, 234, 234);
+    border-radius: 2px;
+    float: right;
+    height: 20px;
+    position: absolute;
+    right: -25px;
+    top: 15px;
+    width: 50px;
+}
+
+.start-pointer-tooltip-arrow
+{
+    border-bottom: 5px solid rgb(234, 234, 234);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    left: -5px;
+    position: absolute;
+    top: 10px;
+}
+
+.end-pointer-tooltip-arrow
+{
+    border-bottom: 5px solid rgb(234, 234, 234);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    position: absolute;
+    right: -5px;
+    top: 10px;
 }

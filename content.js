@@ -1,6 +1,19 @@
 let loopContainer = null;
 let loopSliderContainer = null;
 
+let loopStartInput = null;
+let loopEndInput = null;
+
+let loopSliderSelected = null;
+let loopSliderUnselected = null;
+
+const videoDuration = document.querySelector('.ytp-time-duration').innerText;
+const videoDurationSeconds = timeToSeconds(videoDuration);
+
+let widthPercentageInt = 100;
+let leftMarginPercentageInt = 0;
+let rightMarginPercentageInt = 0;
+
 // Wait for the YouTube page to dynamically load content
 function waitForElement(selector, callback)
 {
@@ -49,9 +62,6 @@ function addLoopButton()
         setTimeout(addLoopButton, 1000);
     }
 }
-
-let loopStartInput = null;
-let loopEndInput = null;
 
 function createLoopContainer()
 {
@@ -188,9 +198,6 @@ function secondsToTime(totalSeconds)
     }
 }
 
-let loopSliderSelected = null;
-let loopSliderUnselected = null;
-
 function createLoopSlider()
 {
     loopSliderSelected = document.createElement('div');
@@ -218,6 +225,14 @@ function createLoopSlider()
         }
     });
 
+    const startPointerTooltipArrow = document.createElement('div');
+    startPointerTooltipArrow.className = 'start-pointer-tooltip-arrow';
+
+    const startPointerTooltip = document.createElement('input');
+    startPointerTooltip.className = 'start-pointer-tooltip';
+    startPointerTooltip.disabled = true;
+    startPointerTooltip.value = loopStartInput.value;
+
     const endPointer = document.createElement('div');
     endPointer.className = 'loop-slider-end-pointer';
     endPointer.addEventListener('mousedown', (event) =>
@@ -237,20 +252,24 @@ function createLoopSlider()
         }
     });
 
+    const endPointerTooltipArrow = document.createElement('div');
+    endPointerTooltipArrow.className = 'end-pointer-tooltip-arrow';
+
+    const endPointerTooltip = document.createElement('div');
+    endPointerTooltip.className = 'end-pointer-tooltip';
+    endPointerTooltip.style.innerText = loopEndInput.value;
+
     loopSliderUnselected.appendChild(startPointer);
+    loopSliderUnselected.appendChild(startPointerTooltipArrow);
+    loopSliderUnselected.appendChild(startPointerTooltip);
     loopSliderUnselected.appendChild(endPointer);
+    loopSliderUnselected.appendChild(endPointerTooltipArrow);
+    loopSliderUnselected.appendChild(endPointerTooltip);
 
     loopSliderSelected.appendChild(loopSliderUnselected);
 
     loopSliderContainer.appendChild(loopSliderSelected);
 }
-
-const videoDuration = document.querySelector('.ytp-time-duration').innerText;
-const videoDurationSeconds = timeToSeconds(videoDuration);
-
-let widthPercentageInt = 100;
-let leftMarginPercentageInt = 0;
-let rightMarginPercentageInt = 0;
 
 function movePointer(event, pointer)
 {
@@ -366,7 +385,6 @@ function addDynamicStyles()
     `;
     document.head.appendChild(style);
 }
-
 
 // Wait for the YouTube button container to appear, then add the custom button
 waitForElement('#top-level-buttons-computed', addLoopButton);
