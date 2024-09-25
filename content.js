@@ -50,6 +50,9 @@ function addLoopButton()
     }
 }
 
+let loopStartInput = null;
+let loopEndInput = null;
+
 function createLoopContainer()
 {
     const bottomRow = document.querySelector('#bottom-row');
@@ -74,7 +77,35 @@ function createLoopContainer()
                 loopSliderContainer.id = 'loop-slider-container';
                 loopSliderContainer.className = 'loop-slider-container';
 
+                loopInputsContainer = document.createElement('div');
+                loopInputsContainer.id = 'loop-inputs-container';
+
+                loopStartInput = document.createElement('input');
+                loopStartInput.value = '00:00';
+                loopStartInput.addEventListener('keydown', (event) =>
+                {
+                    if (event.key === 'Enter' && timeToSeconds(loopStartInput.value))
+                    {
+                        alert(loopStartInput.value);
+                    }
+                });
+
+                loopEndInput = document.createElement('input');
+                loopEndInput.value = videoDuration;
+                loopEndInput.addEventListener('keydown', (event) =>
+                {
+                    if (event.key === 'Enter')
+                    {
+                        console.log(loopEndInput.value);
+                    }
+                });
+
+                loopInputsContainer.appendChild(loopStartInput);
+                loopInputsContainer.appendChild(loopEndInput);
+
                 loopContainer.appendChild(loopSliderContainer);
+                loopContainer.appendChild(loopInputsContainer);
+
                 description.parentNode.insertBefore(loopContainer, description);
 
                 createLoopSlider(loopSliderContainer);
@@ -85,28 +116,40 @@ function createLoopContainer()
 
 function timeToSeconds(time)
 {
-    const parts = time.toString().split(':');
-    let totalSeconds = 0;
-
-    for (let i = parts.length - 1; i >= 0; i--)
+    try
     {
-        // This converts the string to an integer
-        // We starts with seconds, then minutes, etc.
-        const part = parseInt(parts[i], 10);
+        const regex = /^(?:\d{2}:\d{2}|\d{2}:\d{2}:\d{2})$/;
+        const parts = time.toString().split(':');
 
-        // This will multiply the part by 60 to the power of the position in the array
-        // For example, if the part is 4 and the position is 2 (hours) starting from the back, this will be 4 * 60^2 (3600) = 14400 seconds 
-        totalSeconds += part * Math.pow(60, parts.length - 1 - i);
+        if (regex.test(time))
+        {
+            let totalSeconds = 0;
+
+            for (let i = parts.length - 1; i >= 0; i--)
+            {
+                // This converts the string to an integer
+                // We starts with seconds, then minutes, etc.
+                const part = parseInt(parts[i], 10);
+
+                // This will multiply the part by 60 to the power of the position in the array
+                // For example, if the part is 4 and the position is 2 (hours) starting from the back, this will be 4 * 60^2 (3600) = 14400 seconds 
+                totalSeconds += part * Math.pow(60, parts.length - 1 - i);
+            }
+
+            return totalSeconds;
+        }
     }
-
-    return totalSeconds;
+    catch (error)
+    {
+        return false;
+    }
 }
 
 function secondsToTime(totalSeconds)
 {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    const seconds = Math.floor(totalSeconds % 60);
 
     // Always pad seconds to 2 digits
     const paddedSeconds = seconds.toString().padStart(2, '0');
@@ -176,15 +219,16 @@ function createLoopSlider()
         }
     });
 
-    loopSliderSelected.appendChild(loopSliderUnselected);
-
     loopSliderUnselected.appendChild(startPointer);
     loopSliderUnselected.appendChild(endPointer);
+
+    loopSliderSelected.appendChild(loopSliderUnselected);
 
     loopSliderContainer.appendChild(loopSliderSelected);
 }
 
-const videoDurationSeconds = timeToSeconds(document.querySelector('.ytp-time-duration'));
+const videoDuration = document.querySelector('.ytp-time-duration').innerText;
+const videoDurationSeconds = timeToSeconds(videoDuration);
 
 let widthPercentageInt = 100;
 let leftMarginPercentageInt = 0;
@@ -211,20 +255,16 @@ function movePointer(event, pointer)
     switch (pointer)
     {
         case 'start':
-            console.log('start');
-
             if (posInt >= 0 && posInt <= 100 - rightMarginPercentageInt - 1)
             {
-                console.log('start if');
-                console.log(`posInt: ${posInt}`);
-
                 leftMarginPercentageInt = posInt;
                 widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
 
-                console.log(`widthPercentageInt: ${widthPercentageInt}, leftMarginPercentageInt: ${leftMarginPercentageInt}, rightMarginPercentageInt: ${rightMarginPercentageInt}`);
-
                 loopSliderUnselected.style.width = `${widthPercentageInt}%`;
                 loopSliderUnselected.style.marginLeft = `${leftMarginPercentageInt}%`;
+
+                const loopStartInputValue = videoDurationSeconds * (leftMarginPercentageInt / 100);
+                loopStartInput.value = secondsToTime(loopStartInputValue);
 
                 // t = (parseInt(pos) / 100 * duration).toFixed(0);
                 // if (t >= duration || t < 0)
@@ -234,19 +274,16 @@ function movePointer(event, pointer)
             }
             break;
         case 'end':
-            console.log('end');
-
             if ((100 - posInt) >= 0 && (100 - posInt) <= 100 - leftMarginPercentageInt - 1)
             {
-                console.log('end if');
-
                 rightMarginPercentageInt = 100 - posInt;
                 widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
 
-                console.log(`widthPercentageInt: ${widthPercentageInt}, leftMarginPercentageInt: ${leftMarginPercentageInt}, rightMarginPercentageInt: ${rightMarginPercentageInt}`);
-
                 loopSliderUnselected.style.width = `${widthPercentageInt}%`;
                 loopSliderUnselected.style.marginRight = `${rightMarginPercentageInt}%`;
+
+                const loopEndInputValue = videoDurationSeconds - videoDurationSeconds * (rightMarginPercentageInt / 100);
+                loopEndInput.value = secondsToTime(loopEndInputValue);
             }
             break;
     }
