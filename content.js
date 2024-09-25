@@ -1,3 +1,6 @@
+let loopContainer = null;
+let loopSliderContainer = null;
+
 // Wait for the YouTube page to dynamically load content
 function waitForElement(selector, callback)
 {
@@ -21,24 +24,31 @@ function addLoopButton()
 
     if (topLevelButtons)
     {
+        const ytButtonViewModel = document.createElement('yt-button-view-model')
+        ytButtonViewModel.className = 'style-scope ytd-button-renderer';
+
+        const buttonViewModel = document.createElement('button-view-model');
+        buttonViewModel.className = 'yt-spec-button-view-model';
+
         const loopButton = document.createElement('button');
         loopButton.innerText = 'Loop';
-        loopButton.className = 'loop-button yt-spec-button-shape-next yt-spec-button-shape-next--tonal yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m';
-
+        loopButton.className = 'loop-button yt-spec-button-shape-next yt-spec-button-shape-next--tonal yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading yt-spec-button-shape-next--enable-backdrop-filter-experiment';
         loopButton.addEventListener('click', function ()
         {
             createLoopContainer();
             addDynamicStyles();
         });
 
-        topLevelButtons.appendChild(loopButton);
+        topLevelButtons.appendChild(ytButtonViewModel);
+
+        ytButtonViewModel.appendChild(buttonViewModel);
+
+        buttonViewModel.appendChild(loopButton);
     } else
     {
         setTimeout(addLoopButton, 1000);
     }
 }
-
-let loopContainer = null;
 
 function createLoopContainer()
 {
@@ -52,22 +62,22 @@ function createLoopContainer()
             bottomRow.style.display = 'block';
 
             const descriptionElements = document.querySelectorAll('#description');
-            const originalDescription = descriptionElements[1];
+            const description = descriptionElements[1];
 
-            if (originalDescription)
+            if (description)
             {
                 loopContainer = document.createElement('div');
                 loopContainer.id = 'loop-container';
-                loopContainer.className = 'loop-container style-scope ytd-watch-metadata';
+                loopContainer.className = 'loop-container';
 
-                const loopSliderContainer = document.createElement('div');
+                loopSliderContainer = document.createElement('div');
                 loopSliderContainer.id = 'loop-slider-container';
-                loopSliderContainer.className = 'loop-slider-container style-scope ytd-watch-metadata';
+                loopSliderContainer.className = 'loop-slider-container';
 
                 loopContainer.appendChild(loopSliderContainer);
-                originalDescription.parentNode.insertBefore(loopContainer, originalDescription);
+                description.parentNode.insertBefore(loopContainer, description);
 
-                createLoopSlider(loopSliderContainer); // Create the slider in the cloned description
+                createLoopSlider(loopSliderContainer);
             }
         }
     }
@@ -117,53 +127,61 @@ function secondsToTime(totalSeconds)
     }
 }
 
-let loopSliderForeground = null;
-let loopSliderBackground = null;
+let loopSliderSelected = null;
+let loopSliderUnselected = null;
 
-function createLoopSlider(clonedDescriptionInner)
+function createLoopSlider()
 {
-    loopSliderForeground = document.createElement('div');
-    loopSliderForeground.className = 'loop-slider-foreground';
+    loopSliderSelected = document.createElement('div');
+    loopSliderSelected.className = 'loop-slider-selected';
 
-    loopSliderBackground = document.createElement('div');
-    loopSliderBackground.className = 'loop-slider-background';
+    loopSliderUnselected = document.createElement('div');
+    loopSliderUnselected.className = 'loop-slider-unselected';
 
     const startPointer = document.createElement('div');
     startPointer.className = 'loop-slider-start-pointer';
-
     startPointer.addEventListener('mousedown', (event) =>
     {
         if (event.button === 0)
         {
-            window.addEventListener('mousemove', movePointer(event, 'start'), false);
+            const moveHandler = (event) =>
+            {
+                movePointer(event, 'start');
+            }
+
+            window.addEventListener('mousemove', moveHandler, false);
             window.addEventListener('mouseup', () =>
             {
-                window.removeEventListener('mousemove', movePointer(event, 'start'), false);
+                window.removeEventListener('mousemove', moveHandler, false);
             }, false);
         }
     });
 
     const endPointer = document.createElement('div');
     endPointer.className = 'loop-slider-end-pointer';
-
     endPointer.addEventListener('mousedown', (event) =>
     {
         if (event.button === 0)
         {
-            window.addEventListener('mousemove', movePointer(event, 'end'), false);
+            const moveHandler = (event) =>
+            {
+                movePointer(event, 'end');
+            }
+
+            window.addEventListener('mousemove', moveHandler, false);
             window.addEventListener('mouseup', () =>
             {
-                window.removeEventListener('mousemove', movePointer(event, 'end'), false);
+                window.removeEventListener('mousemove', moveHandler, false);
             }, false);
         }
     });
 
-    loopSliderForeground.appendChild(loopSliderBackground);
+    loopSliderSelected.appendChild(loopSliderUnselected);
 
-    loopSliderBackground.appendChild(startPointer);
-    loopSliderBackground.appendChild(endPointer);
+    loopSliderUnselected.appendChild(startPointer);
+    loopSliderUnselected.appendChild(endPointer);
 
-    clonedDescriptionInner.appendChild(loopSliderForeground);
+    loopSliderContainer.appendChild(loopSliderSelected);
 }
 
 const videoDurationSeconds = timeToSeconds(document.querySelector('.ytp-time-duration'));
@@ -187,18 +205,26 @@ function movePointer(event, pointer)
 
     // This refers to how far along the mouse is in the slider in percentages
     // For example, if the mouse is halfway through the slider, this will be 50
-    const pos = ((event.pageX - loopSliderForeground.offsetLeft - _containerOffsetLeft) / loopSliderForeground.offsetWidth * 100).toFixed(4);
+    const pos = ((event.pageX - loopSliderSelected.offsetLeft - _containerOffsetLeft) / loopSliderSelected.offsetWidth * 100).toFixed(4);
     const posInt = parseInt(pos);
 
     switch (pointer)
     {
         case 'start':
+            console.log('start');
+
             if (posInt >= 0 && posInt <= 100 - rightMarginPercentageInt - 1)
             {
+                console.log('start if');
+                console.log(`posInt: ${posInt}`);
+
                 leftMarginPercentageInt = posInt;
                 widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
-                loopSliderBackground.style.width = `${widthPercentageInt}%`;
-                loopSliderBackground.style.marginLeft = `${leftMarginPercentageInt}%`;
+
+                console.log(`widthPercentageInt: ${widthPercentageInt}, leftMarginPercentageInt: ${leftMarginPercentageInt}, rightMarginPercentageInt: ${rightMarginPercentageInt}`);
+
+                loopSliderUnselected.style.width = `${widthPercentageInt}%`;
+                loopSliderUnselected.style.marginLeft = `${leftMarginPercentageInt}%`;
 
                 // t = (parseInt(pos) / 100 * duration).toFixed(0);
                 // if (t >= duration || t < 0)
@@ -208,12 +234,19 @@ function movePointer(event, pointer)
             }
             break;
         case 'end':
+            console.log('end');
+
             if ((100 - posInt) >= 0 && (100 - posInt) <= 100 - leftMarginPercentageInt - 1)
             {
+                console.log('end if');
+
                 rightMarginPercentageInt = 100 - posInt;
                 widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
-                loopSliderBackground.style.width = `${widthPercentageInt}%`;
-                loopSliderBackground.style.marginRight = `${rightMarginPercentageInt}%`;
+
+                console.log(`widthPercentageInt: ${widthPercentageInt}, leftMarginPercentageInt: ${leftMarginPercentageInt}, rightMarginPercentageInt: ${rightMarginPercentageInt}`);
+
+                loopSliderUnselected.style.width = `${widthPercentageInt}%`;
+                loopSliderUnselected.style.marginRight = `${rightMarginPercentageInt}%`;
             }
             break;
     }
