@@ -14,6 +14,9 @@ let widthPercentageInt = 100;
 let leftMarginPercentageInt = 0;
 let rightMarginPercentageInt = 0;
 
+let startPointerText = null;
+let endPointerText = null;
+
 // Wait for the YouTube page to dynamically load content
 function waitForElement(selector, callback)
 {
@@ -79,6 +82,9 @@ function createLoopContainer()
 
             if (description)
             {
+                const descriptionInner = description.querySelector('#description-inner');
+                descriptionInner.style = 'padding-bottom: 12px; padding-top: 12px;';
+
                 loopContainer = document.createElement('div');
                 loopContainer.id = 'loop-container';
                 loopContainer.className = 'loop-container';
@@ -91,7 +97,7 @@ function createLoopContainer()
                 loopInputsContainer.id = 'loop-inputs-container';
 
                 loopStartInput = document.createElement('input');
-                loopStartInput.value = '00:00';
+                loopStartInput.value = '0:00';
                 loopStartInput.addEventListener('keydown', (event) =>
                 {
                     if (event.key === 'Enter')
@@ -104,6 +110,8 @@ function createLoopContainer()
 
                             loopSliderUnselected.style.width = `${widthPercentageInt}%`;
                             loopSliderUnselected.style.marginLeft = `${leftMarginPercentageInt}%`;
+
+                            startPointerText.innerText = loopStartInput.value;
                         }
                     }
                 });
@@ -122,6 +130,8 @@ function createLoopContainer()
 
                             loopSliderUnselected.style.width = `${widthPercentageInt}%`;
                             loopSliderUnselected.style.marginRight = `${rightMarginPercentageInt}%`;
+
+                            endPointerText.innerText = loopEndInput.value;
                         }
                     }
                 });
@@ -201,10 +211,10 @@ function secondsToTime(totalSeconds)
 function createLoopSlider()
 {
     loopSliderSelected = document.createElement('div');
-    loopSliderSelected.className = 'loop-slider-selected';
+    loopSliderSelected.className = 'loop-slider-unselected';
 
     loopSliderUnselected = document.createElement('div');
-    loopSliderUnselected.className = 'loop-slider-unselected';
+    loopSliderUnselected.className = 'loop-slider-selected';
 
     const startPointer = document.createElement('div');
     startPointer.className = 'loop-slider-start-pointer';
@@ -225,13 +235,14 @@ function createLoopSlider()
         }
     });
 
-    const startPointerTooltipArrow = document.createElement('div');
-    startPointerTooltipArrow.className = 'start-pointer-tooltip-arrow';
+    // const startPointerTooltipArrow = document.createElement('div');
+    // startPointerTooltipArrow.className = 'start-pointer-tooltip-arrow';
 
-    const startPointerTooltip = document.createElement('input');
+    const startPointerTooltip = document.createElement('div');
     startPointerTooltip.className = 'start-pointer-tooltip';
-    startPointerTooltip.disabled = true;
-    startPointerTooltip.value = loopStartInput.value;
+
+    startPointerText = document.createElement('span');
+    startPointerText.innerText = loopStartInput.value;
 
     const endPointer = document.createElement('div');
     endPointer.className = 'loop-slider-end-pointer';
@@ -252,18 +263,23 @@ function createLoopSlider()
         }
     });
 
-    const endPointerTooltipArrow = document.createElement('div');
-    endPointerTooltipArrow.className = 'end-pointer-tooltip-arrow';
+    // const endPointerTooltipArrow = document.createElement('div');
+    // endPointerTooltipArrow.className = 'end-pointer-tooltip-arrow';
 
     const endPointerTooltip = document.createElement('div');
     endPointerTooltip.className = 'end-pointer-tooltip';
-    endPointerTooltip.style.innerText = loopEndInput.value;
+
+    endPointerText = document.createElement('span');
+    endPointerText.innerText = loopEndInput.value;
+
+    startPointerTooltip.appendChild(startPointerText);
+    endPointerTooltip.appendChild(endPointerText);
 
     loopSliderUnselected.appendChild(startPointer);
-    loopSliderUnselected.appendChild(startPointerTooltipArrow);
+    // loopSliderUnselected.appendChild(startPointerTooltipArrow);
     loopSliderUnselected.appendChild(startPointerTooltip);
     loopSliderUnselected.appendChild(endPointer);
-    loopSliderUnselected.appendChild(endPointerTooltipArrow);
+    // loopSliderUnselected.appendChild(endPointerTooltipArrow);
     loopSliderUnselected.appendChild(endPointerTooltip);
 
     loopSliderSelected.appendChild(loopSliderUnselected);
@@ -303,6 +319,8 @@ function movePointer(event, pointer)
                 const loopStartInputValue = videoDurationSeconds * (leftMarginPercentageInt / 100);
                 loopStartInput.value = secondsToTime(loopStartInputValue);
 
+                startPointerText.innerText = loopStartInput.value;
+
                 // t = (parseInt(pos) / 100 * duration).toFixed(0);
                 // if (t >= duration || t < 0)
                 // {
@@ -321,6 +339,8 @@ function movePointer(event, pointer)
 
                 const loopEndInputValue = videoDurationSeconds - videoDurationSeconds * (rightMarginPercentageInt / 100);
                 loopEndInput.value = secondsToTime(loopEndInputValue);
+
+                endPointerText.innerText = loopEndInput.value;
             }
             break;
     }

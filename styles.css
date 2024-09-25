@@ -10,25 +10,19 @@
     font-size: 14px;
     height: 104px;
     line-height: 20px;
-    margin: 12px 12px 0 0;
+    margin-right: 12px;
+    margin-top: 12px;
 }
 
 .loop-slider-container
 {
-    margin: 12px;
+    margin-left: 16px;
+    margin-right: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
 }
 
 .loop-slider-selected
-{
-    background-color: #aaaaaa;
-    cursor: pointer;
-    height: 9px;
-    position: relative;
-    user-select: none;
-    z-index: 2;
-}
-
-.loop-slider-unselected
 {
     background-color: #f1f1f1;
     height: 100%;
@@ -38,6 +32,17 @@
     right: initial;
     width: 100%;
     z-index: 1;
+}
+
+.loop-slider-unselected
+{
+    background-color: #aaaaaa;
+    border-radius: 8px;
+    cursor: pointer;
+    height: 9px;
+    position: relative;
+    user-select: none;
+    z-index: 2;
 }
 
 .loop-slider-start-pointer
@@ -88,9 +93,11 @@
 {
     background-color: rgb(234, 234, 234);
     border-radius: 2px;
+    color: black;
     height: 20px;
     left: -25px;
     position: absolute;
+    text-align: center;
     top: 15px;
     width: 50px;
 }
@@ -99,9 +106,11 @@
 {
     background-color: rgb(234, 234, 234);
     border-radius: 2px;
+    color: black;
     float: right;
     height: 20px;
     position: absolute;
+    text-align: center;
     right: -25px;
     top: 15px;
     width: 50px;
