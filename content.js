@@ -97,6 +97,7 @@ function createLoopContainer()
                 loopInputsContainer.id = 'loop-inputs-container';
 
                 loopStartInput = document.createElement('input');
+                loopStartInput.className = 'loop-input';
                 loopStartInput.value = '0:00';
                 loopStartInput.addEventListener('keydown', (event) =>
                 {
@@ -117,6 +118,7 @@ function createLoopContainer()
                 });
 
                 loopEndInput = document.createElement('input');
+                loopEndInput.className = 'loop-input';
                 loopEndInput.value = videoDuration;
                 loopEndInput.addEventListener('keydown', (event) =>
                 {
@@ -145,6 +147,48 @@ function createLoopContainer()
                 description.parentNode.insertBefore(loopContainer, description);
 
                 createLoopSlider(loopSliderContainer);
+
+                const videoPlayer = document.querySelector('.video-stream');
+
+                function checkCurrentVideoTimeSeconds()
+                {
+                    return videoPlayer.currentTime.toFixed(0);
+                }
+
+                let a, b = null;
+
+                videoPlayer.addEventListener('play', () =>
+                {
+                    let currentVideoTimeSeconds = checkCurrentVideoTimeSeconds();
+
+                    a = setInterval(() =>
+                    {
+                        console.log(`Current video time: ${secondsToTime(currentVideoTimeSeconds)}, checkCurrentVideoTime: ${secondsToTime(checkCurrentVideoTimeSeconds())}`);
+
+                        if (checkCurrentVideoTimeSeconds() !== currentVideoTimeSeconds)
+                        {
+                            currentVideoTimeSeconds = checkCurrentVideoTimeSeconds();
+                            clearInterval(a);
+
+                            b = setInterval(() =>
+                            {
+                                currentVideoTimeSeconds = checkCurrentVideoTimeSeconds();
+
+                                console.log(`Current video time: ${secondsToTime(currentVideoTimeSeconds)}, loopStartInput: ${loopStartInput.value}, loopEndInput: ${loopEndInput.value}`);
+
+                                if (currentVideoTimeSeconds < timeToSeconds(loopStartInput.value) || currentVideoTimeSeconds >= timeToSeconds(loopEndInput.value))
+                                {
+                                    videoPlayer.currentTime = timeToSeconds(loopStartInput.value);
+                                }
+                            }, 1000);
+                        }
+                    }, 100);
+                });
+                videoPlayer.addEventListener('pause', () =>
+                {
+                    clearInterval(a);
+                    clearInterval(b);
+                });
             }
         }
     }
