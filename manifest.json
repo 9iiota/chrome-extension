@@ -13,5 +13,11 @@
 			"css": ["styles.css"],
 			"js": ["content.js"]
 		}
+	],
+	"web_accessible_resources": [
+		{
+			"resources": [ "images/loop-icon-24.png" ],
+			"matches": ["https://www.youtube.com/*"]
+		}
 	]
 }
