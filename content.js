@@ -1,3 +1,27 @@
+const youtubeLooper = {
+    loopContainer: null,
+    loopSliderContainer: null,
+    loopStartInput: null,
+    loopEndInput: null,
+    loopSliderSelected: null,
+    loopSliderUnselected: null,
+    videoDurationFormatted: document.querySelector('.ytp-time-duration').innerText,
+    videoDurationSeconds: timeToSeconds(document.querySelector('.ytp-time-duration').innerText),
+    widthPercentageInt: 100,
+    leftMarginPercentageInt: 0,
+    rightMarginPercentageInt: 0,
+    startPointerText: null,
+    endPointerText: null,
+    videoPlayer: document.querySelector('.video-stream'),
+    looping: false,
+    startInput: '0:00',
+    endInput: document.querySelector('.ytp-time-duration').innerText,
+    a: null,
+    b: null,
+    playEventListener: null,
+    pauseEventListener: null
+};
+
 let loopContainer = null;
 let loopSliderContainer = null;
 
@@ -7,12 +31,12 @@ let loopEndInput = null;
 let loopSliderSelected = null;
 let loopSliderUnselected = null;
 
-const videoDuration = document.querySelector('.ytp-time-duration').innerText;
-const videoDurationSeconds = timeToSeconds(videoDuration);
+const videoDurationFormatted = document.querySelector('.ytp-time-duration').innerText;
+const videoDurationSeconds = timeToSeconds(videoDurationFormatted);
 
-let widthPercentageInt = 100;
-let leftMarginPercentageInt = 0;
-let rightMarginPercentageInt = 0;
+let loopSliderUnselectedWidthPercentageInt = 100;
+let loopSliderUnselectedLeftMarginPercentageInt = 0;
+let loopSliderUnselectedRightMarginPercentageInt = 0;
 
 let startPointerText = null;
 let endPointerText = null;
@@ -26,7 +50,7 @@ let playEventListener;
 let pauseEventListener;
 
 let startInput = '0:00';
-let endInput = videoDuration;
+let endInput = videoDurationFormatted;
 
 waitForElement('#top-level-buttons-computed', addLoopButton);
 // document.addEventListener('DOMContentLoaded', function ()
@@ -74,14 +98,18 @@ function adjustStartPointer(value)
     const loopStartInputValue = timeToSeconds(value);
     if (loopStartInputValue !== false && loopStartInputValue >= 0 && loopStartInputValue <= videoDurationSeconds)
     {
-        leftMarginPercentageInt = (loopStartInputValue / videoDurationSeconds) * 100;
-        widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
+        loopSliderUnselectedLeftMarginPercentageInt = (loopStartInputValue / videoDurationSeconds) * 100;
+        loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
 
-        loopSliderUnselected.style.width = `${widthPercentageInt}%`;
-        loopSliderUnselected.style.marginLeft = `${leftMarginPercentageInt}%`;
+        loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
+        loopSliderUnselected.style.marginLeft = `${loopSliderUnselectedLeftMarginPercentageInt}%`;
 
         startInput = loopStartInput.value;
         startPointerText.innerText = loopStartInput.value;
+    }
+    else
+    {
+        loopStartInput.value = startInput;
     }
 }
 
@@ -90,14 +118,18 @@ function adjustEndPointer(value)
     const loopEndInputValue = timeToSeconds(value);
     if (loopEndInputValue !== false && loopEndInputValue >= 0 && loopEndInputValue <= videoDurationSeconds)
     {
-        rightMarginPercentageInt = 100 - (loopEndInputValue / videoDurationSeconds) * 100;
-        widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
+        loopSliderUnselectedRightMarginPercentageInt = 100 - (loopEndInputValue / videoDurationSeconds) * 100;
+        loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
 
-        loopSliderUnselected.style.width = `${widthPercentageInt}%`;
-        loopSliderUnselected.style.marginRight = `${rightMarginPercentageInt}%`;
+        loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
+        loopSliderUnselected.style.marginRight = `${loopSliderUnselectedRightMarginPercentageInt}%`;
 
         endInput = loopEndInput.value;
         endPointerText.innerText = loopEndInput.value;
+    }
+    else
+    {
+        loopEndInput.value = endInput;
     }
 }
 
@@ -134,10 +166,7 @@ function addLoopButton()
 
         const loopIcon = document.createElement('img');
         loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
-        loopIcon.style.verticalAlign = 'middle';
-        loopIcon.style.width = '24px';
-        loopIcon.style.height = '24px';
-        loopIcon.style.marginRight = '6px';
+        loopIcon.className = 'loop-icon';
 
         const loopTextNode = document.createTextNode('Loop');
 
@@ -181,13 +210,14 @@ function addLoopContainer()
 
                 loopInputsContainer = document.createElement('div');
                 loopInputsContainer.id = 'loop-inputs-container';
+                loopInputsContainer.className = 'loop-inputs-container';
 
                 loopStartInput = document.createElement('input');
                 loopStartInput.className = 'loop-input';
                 loopStartInput.value = startInput;
                 loopStartInput.addEventListener('keydown', (event) =>
                 {
-                    if (event.key === 'Enter')
+                    if (event.key === 'Enter' || event.key === 'Tab')
                     {
                         adjustStartPointer(loopStartInput.value);
                     }
@@ -198,7 +228,7 @@ function addLoopContainer()
                 loopEndInput.value = endInput;
                 loopEndInput.addEventListener('keydown', (event) =>
                 {
-                    if (event.key === 'Enter')
+                    if (event.key === 'Enter' || event.key === 'Tab')
                     {
                         adjustEndPointer(loopEndInput.value);
                     }
@@ -405,30 +435,30 @@ function movePointer(event, pointer)
     switch (pointer)
     {
         case 'start':
-            if (posInt >= 0 && posInt <= 100 - rightMarginPercentageInt - 1)
+            if (posInt >= 0 && posInt <= 100 - loopSliderUnselectedRightMarginPercentageInt - 1)
             {
-                leftMarginPercentageInt = posInt;
-                widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
+                loopSliderUnselectedLeftMarginPercentageInt = posInt;
+                loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
 
-                loopSliderUnselected.style.width = `${widthPercentageInt}%`;
-                loopSliderUnselected.style.marginLeft = `${leftMarginPercentageInt}%`;
+                loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
+                loopSliderUnselected.style.marginLeft = `${loopSliderUnselectedLeftMarginPercentageInt}%`;
 
-                const loopStartInputValue = videoDurationSeconds * (leftMarginPercentageInt / 100);
+                const loopStartInputValue = videoDurationSeconds * (loopSliderUnselectedLeftMarginPercentageInt / 100);
                 startInput = secondsToTime(loopStartInputValue);
                 loopStartInput.value = startInput;
                 startPointerText.innerText = startInput;
             }
             break;
         case 'end':
-            if ((100 - posInt) >= 0 && (100 - posInt) <= 100 - leftMarginPercentageInt - 1)
+            if ((100 - posInt) >= 0 && (100 - posInt) <= 100 - loopSliderUnselectedLeftMarginPercentageInt - 1)
             {
-                rightMarginPercentageInt = 100 - posInt;
-                widthPercentageInt = 100 - leftMarginPercentageInt - rightMarginPercentageInt;
+                loopSliderUnselectedRightMarginPercentageInt = 100 - posInt;
+                loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
 
-                loopSliderUnselected.style.width = `${widthPercentageInt}%`;
-                loopSliderUnselected.style.marginRight = `${rightMarginPercentageInt}%`;
+                loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
+                loopSliderUnselected.style.marginRight = `${loopSliderUnselectedRightMarginPercentageInt}%`;
 
-                const loopEndInputValue = videoDurationSeconds - videoDurationSeconds * (rightMarginPercentageInt / 100);
+                const loopEndInputValue = videoDurationSeconds - videoDurationSeconds * (loopSliderUnselectedRightMarginPercentageInt / 100);
                 endInput = secondsToTime(loopEndInputValue);
                 loopEndInput.value = endInput;
                 endPointerText.innerText = endInput;
