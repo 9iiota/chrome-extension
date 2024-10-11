@@ -146,27 +146,31 @@ function addLoopButton()
         const buttonViewModel = document.createElement('button-view-model');
         buttonViewModel.className = 'yt-spec-button-view-model';
 
+        const loopIcon = document.createElement('img');
+        loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
+        loopIcon.className = 'loop-icon';
+
         loopButton = document.createElement('button');
         loopButton.id = 'loop-button';
         loopButton.className = 'loop-button yt-spec-button-shape-next yt-spec-button-shape-next--tonal yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading yt-spec-button-shape-next--enable-backdrop-filter-experiment';
         loopButton.addEventListener('click', function ()
         {
+            loopButton.classList.toggle('pressed');
+
             if (!looping)
             {
+                loopIcon.src = chrome.runtime.getURL('images/loop-icon-24-pressed.png');
                 addLoopContainer();
                 addDynamicStyles();
             }
             else
             {
+                loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
                 const description = document.querySelector('#bottom-row #description');
                 description.parentNode.removeChild(loopContainer);
                 removeLoopListener();
             }
         });
-
-        const loopIcon = document.createElement('img');
-        loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
-        loopIcon.className = 'loop-icon';
 
         const loopTextNode = document.createTextNode('Loop');
 

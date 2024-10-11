@@ -16,7 +16,7 @@
 	],
 	"web_accessible_resources": [
 		{
-			"resources": [ "images/loop-icon-24.png" ],
+			"resources": [ "images/loop-icon-24.png", "images/loop-icon-24-pressed.png" ],
 			"matches": ["https://www.youtube.com/*"]
 		}
 	]
