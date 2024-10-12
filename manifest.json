@@ -3,10 +3,19 @@
 	"name": "Youtube Video Looper",
 	"version": "1.0",
 	"description": "Adds a custom loop button to YouTube video pages",
+	"options_page": "options.html",
 	"permissions": [
 		"activeTab",
-		"scripting"
+		"scripting",
+		"storage",
+		"tabs"
 	],
+	"action": {
+		"default_popup": "options.html"
+	},
+	"background": {
+		"service_worker": "background.js"
+	},
 	"content_scripts": [
 		{
 			"matches": ["*://*.youtube.com/watch*"],
