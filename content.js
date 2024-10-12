@@ -52,7 +52,8 @@ let pauseEventListener;
 let startInput = '0:00';
 let endInput = videoDurationFormatted;
 
-chooseQuality('1080');
+// chooseQuality('1080');
+chooseHighestQuality(1080);
 waitForElement('#top-level-buttons-computed', addLoopButton);
 // document.addEventListener('DOMContentLoaded', function ()
 // {
@@ -93,6 +94,42 @@ function chooseQuality(quality)
     {
         settingsButton.click();
         videoPlayer.focus();
+    }
+}
+
+function chooseHighestQuality(maxQuality = null)
+{
+    const settingsButton = document.querySelector('.ytp-settings-button');
+    settingsButton.click();
+
+    const settingsMenu = document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem');
+    settingsMenu.forEach(item =>
+    {
+        const label = item.querySelector('.ytp-menuitem-label');
+        if (label.textContent.includes('Quality'))
+        {
+            label.click();
+        }
+    });
+
+    let bestQualitySpan;
+    const qualityMenu = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
+    const reversedQualityMenu = Array.from(qualityMenu).reverse();
+    for (i = 0; i < reversedQualityMenu.length; i++)
+    {
+        const item = reversedQualityMenu[i];
+        const label = item.querySelector('.ytp-menuitem-label');
+        const labelDiv = label.querySelector('div');
+        const labelSpan = labelDiv.querySelector('span');
+        const quality = Number(labelSpan.textContent.split('p')[0]);
+        if (quality > maxQuality)
+        {
+            bestQualitySpan.click();
+            videoPlayer.focus();
+            break;
+        }
+
+        bestQualitySpan = labelSpan;
     }
 }
 
