@@ -73,6 +73,7 @@ function chooseQuality(quality)
         }
     });
 
+    let selected = false;
     const qualityMenu = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
     qualityMenu.forEach(item =>
     {
@@ -82,8 +83,17 @@ function chooseQuality(quality)
         if (labelSpan.textContent.includes(quality))
         {
             labelSpan.click();
+            videoPlayer.focus();
+
+            selected = true;
         }
     });
+
+    if (!selected)
+    {
+        settingsButton.click();
+        videoPlayer.focus();
+    }
 }
 
 function removeLoopListener()
