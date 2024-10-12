@@ -52,10 +52,39 @@ let pauseEventListener;
 let startInput = '0:00';
 let endInput = videoDurationFormatted;
 
+chooseQuality('1080');
 waitForElement('#top-level-buttons-computed', addLoopButton);
 // document.addEventListener('DOMContentLoaded', function ()
 // {
 // });
+
+function chooseQuality(quality)
+{
+    const settingsButton = document.querySelector('.ytp-settings-button');
+    settingsButton.click();
+
+    const settingsMenu = document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem');
+    settingsMenu.forEach(item =>
+    {
+        const label = item.querySelector('.ytp-menuitem-label');
+        if (label.textContent.includes('Quality'))
+        {
+            label.click();
+        }
+    });
+
+    const qualityMenu = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
+    qualityMenu.forEach(item =>
+    {
+        const label = item.querySelector('.ytp-menuitem-label');
+        const labelDiv = label.querySelector('div');
+        const labelSpan = labelDiv.querySelector('span');
+        if (labelSpan.textContent.includes(quality))
+        {
+            labelSpan.click();
+        }
+    });
+}
 
 function removeLoopListener()
 {
