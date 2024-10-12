@@ -121,16 +121,23 @@ function chooseHighestQuality(maxQuality = null)
         const label = item.querySelector('.ytp-menuitem-label');
         const labelDiv = label.querySelector('div');
         const labelSpan = labelDiv.querySelector('span');
-        const quality = Number(labelSpan.textContent.split('p')[0]);
-        if (quality > maxQuality)
-        {
-            bestQualitySpan.click();
-            videoPlayer.focus();
-            break;
-        }
 
-        bestQualitySpan = labelSpan;
+        if (!labelSpan.textContent.includes('Auto'))
+        {
+            const quality = Number(labelSpan.textContent.split('p')[0]);
+            if (quality <= maxQuality)
+            {
+                bestQualitySpan = labelSpan;
+            }
+            else
+            {
+                break;
+            }
+        }
     }
+
+    bestQualitySpan.click();
+    videoPlayer.focus();
 }
 
 function removeLoopListener()
