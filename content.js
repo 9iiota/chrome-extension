@@ -52,16 +52,13 @@ let pauseEventListener;
 let startInput = '0:00';
 let endInput = videoDurationFormatted;
 
-// chooseQuality('1080');
-chooseHighestQuality(1080);
-waitForElement('#top-level-buttons-computed', addLoopButton);
-// document.addEventListener('DOMContentLoaded', function ()
-// {
-// });
+const settingsButton = document.querySelector('.ytp-settings-button');
 
-function chooseQuality(quality)
+chooseHighestQuality();
+waitForElement('#top-level-buttons-computed', addLoopButton);
+
+function openQualityMenu()
 {
-    const settingsButton = document.querySelector('.ytp-settings-button');
     settingsButton.click();
 
     const settingsMenu = document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem');
@@ -73,6 +70,11 @@ function chooseQuality(quality)
             label.click();
         }
     });
+}
+
+function chooseQuality(quality)
+{
+    openQualityMenu();
 
     let selected = false;
     const qualityMenu = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
@@ -97,47 +99,55 @@ function chooseQuality(quality)
     }
 }
 
-function chooseHighestQuality(maxQuality = null)
+function chooseHighestQuality()
 {
-    const settingsButton = document.querySelector('.ytp-settings-button');
-    settingsButton.click();
+    openQualityMenu();
 
-    const settingsMenu = document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem');
-    settingsMenu.forEach(item =>
+    // Retrieve saved quality from Chrome storage
+    chrome.storage.sync.get('videoQuality', function (data)
     {
-        const label = item.querySelector('.ytp-menuitem-label');
-        if (label.textContent.includes('Quality'))
+        const savedQualityInt = parseInt(data.videoQuality.split('p')[0], 10);
+        let bestQualityOption = null;
+
+        // Get all quality menu items
+        const qualityMenuItems = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
+
+        // Reverse the quality menu array to start from the worst quality
+        const reversedMenuItems = Array.from(qualityMenuItems).reverse();
+
+        // Iterate through the reversed menu items
+        reversedMenuItems.forEach(item =>
         {
-            label.click();
+            const label = item.querySelector('.ytp-menuitem-label');
+            const labelDiv = label.querySelector('div');
+            const labelSpan = labelDiv.querySelector('span');
+
+            // Skip any "Auto" or "Premium" labels
+            if (labelSpan && !labelSpan.textContent.includes('Auto') && !labelSpan.textContent.includes('Premium'))
+            {
+                const qualityInt = parseInt(labelSpan.textContent.split('p')[0], 10);
+
+                // Select the best quality that is less than or equal to the saved quality
+                if (qualityInt <= savedQualityInt)
+                {
+                    bestQualityOption = labelSpan;
+                } else
+                {
+                    return;  // Stop the loop when a higher quality is found
+                }
+            }
+        });
+
+        // Click the best quality option, if found
+        if (bestQualityOption)
+        {
+            bestQualityOption.click();
+            videoPlayer.focus();
+        } else
+        {
+            console.error('No valid quality option found.');
         }
     });
-
-    let bestQualitySpan;
-    const qualityMenu = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
-    const reversedQualityMenu = Array.from(qualityMenu).reverse();
-    for (i = 0; i < reversedQualityMenu.length; i++)
-    {
-        const item = reversedQualityMenu[i];
-        const label = item.querySelector('.ytp-menuitem-label');
-        const labelDiv = label.querySelector('div');
-        const labelSpan = labelDiv.querySelector('span');
-
-        if (!labelSpan.textContent.includes('Auto'))
-        {
-            const quality = Number(labelSpan.textContent.split('p')[0]);
-            if (quality <= maxQuality)
-            {
-                bestQualitySpan = labelSpan;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    bestQualitySpan.click();
-    videoPlayer.focus();
 }
 
 function removeLoopListener()
@@ -159,7 +169,6 @@ function checkCurrentVideoTimeSeconds()
 
 function waitForElement(selector, callback)
 {
-    console.log('Waiting for element...');
     const observer = new MutationObserver((mutations, observer) =>
     {
         if (document.querySelector(selector))
