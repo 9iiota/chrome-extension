@@ -11,7 +11,10 @@
 		"tabs"
 	],
 	"action": {
-		"default_popup": "options.html"
+		"default_popup": "options.html",
+		"default_icon": {
+			"24": "images/loop-icon-24.png"
+		}
 	},
 	"background": {
 		"service_worker": "background.js"

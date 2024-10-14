@@ -54,8 +54,40 @@ let endInput = videoDurationFormatted;
 
 const settingsButton = document.querySelector('.ytp-settings-button');
 
-chooseHighestQuality();
-waitForElement('#top-level-buttons-computed', addLoopButton);
+function findQualityLabel()
+{
+    const labels = Array.from(document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem .ytp-menuitem-label'));
+    return labels.find(label => label.textContent.includes('Quality'));
+}
+
+chrome.storage.sync.get('enableSetQuality', function (data)
+{
+    if (data.enableSetQuality)
+    {
+        const observer = new MutationObserver((mutationsList, observer) =>
+        {
+            const qualityLabel = findQualityLabel();
+
+            if (qualityLabel)
+            {
+                chooseHighestQuality();
+                observer.disconnect();
+            }
+        });
+
+        const targetNode = document.querySelector('#ytp-id-18 .ytp-panel');
+        const config = { childList: true, subtree: true };
+
+        if (targetNode)
+        {
+            observer.observe(targetNode, config);
+        } else
+        {
+            console.log('Target node not found, ensure the menu has loaded.');
+        }
+    }
+});
+waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', addLoopButton);
 
 function openQualityMenu()
 {

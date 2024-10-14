@@ -3,22 +3,29 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Settings</title>
+    <title>Extension Settings</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <h1>Extension Settings</h1>
-    <label for="qualityOptions">Highest Quality:</label>
-    <select id="qualityOptions" name="quality">
-        <option value="1440p">1440p</option>
-        <option value="1080p">1080p</option>
-        <option value="720p">720p</option>
-        <option value="480p">480p</option>
-        <option value="360p">360p</option>
-        <option value="240p">240p</option>
-        <option value="144p">144p</option>
-    </select>
-    <button id="saveButton">Save</button>
+    <div class="popup-container">
+        <h1>Extension Settings</h1>
+        <label for="enableSetQuality">Automatically set highest quality:</label>
+        <input type="checkbox" id="enableSetQuality" name="enableSetQuality">
+        </label>
+        <div id="qualityDropdown">
+            <label for="qualityOptions">Highest preferred quality:</label>
+            <select id="qualityOptions" name="quality">
+                <option value="1440p">1440p</option>
+                <option value="1080p">1080p</option>
+                <option value="720p">720p</option>
+                <option value="480p">480p</option>
+                <option value="360p">360p</option>
+                <option value="240p">240p</option>
+                <option value="144p">144p</option>
+            </select>
+        </div>
+    </div>
 
     <script src="options.js"></script>
 </body>
