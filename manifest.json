@@ -3,7 +3,7 @@
 	"name": "Youtube Video Looper",
 	"version": "1.0",
 	"description": "Adds a custom loop button to YouTube video pages",
-	"options_page": "options.html",
+	"options_page": "popup.html",
 	"permissions": [
 		"activeTab",
 		"scripting",
@@ -11,7 +11,7 @@
 		"tabs"
 	],
 	"action": {
-		"default_popup": "options.html",
+		"default_popup": "popup.html",
 		"default_icon": {
 			"24": "images/loop-icon-24.png"
 		}

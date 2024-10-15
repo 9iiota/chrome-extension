@@ -60,6 +60,14 @@ function findQualityLabel()
     return labels.find(label => label.textContent.includes('Quality'));
 }
 
+document.addEventListener('visibilitychange', function ()
+{
+    if (!document.hidden)
+    {
+        waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', addLoopButton);
+    }
+});
+
 chrome.storage.sync.get('enableSetQuality', function (data)
 {
     if (data.enableSetQuality)
@@ -413,64 +421,6 @@ function addLoopContainer()
     }
 }
 
-function timeToSeconds(time)
-{
-    try
-    {
-        // This regex will match the following:
-        // 0:00 - 9: 59 | 10:00 - 59: 59 | 1:00:00 - 9: 59: 59 | 10:00:00 - 99: 59: 59 | 100:00:00 - 999: 59: 59
-        const regex = /^(\d{1}:[0-5]{1}\d{1})$|^([1-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$/;
-        const parts = time.toString().split(':');
-
-        if (regex.test(time))
-        {
-            let totalSeconds = 0;
-
-            for (let i = parts.length - 1; i >= 0; i--)
-            {
-                // This converts the string to an integer
-                // We starts with seconds, then minutes, etc.
-                const part = parseInt(parts[i], 10);
-
-                // This will multiply the part by 60 to the power of the position in the array
-                // For example, if the part is 4 and the position is 2 (hours) starting from the back, this will be 4 * 60^2 (3600) = 14400 seconds 
-                totalSeconds += part * Math.pow(60, parts.length - 1 - i);
-            }
-
-            return totalSeconds;
-        }
-    }
-    catch (error)
-    {
-        return false;
-    }
-}
-
-function secondsToTime(totalSeconds)
-{
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-
-    // Always pad seconds to 2 digits
-    const paddedSeconds = seconds.toString().padStart(2, '0');
-
-    if (hours > 0)
-    {
-        // If there are hours, format as "H:MM:SS" or "HH:MM:SS"
-        const paddedMinutes = minutes.toString().padStart(2, '0');
-        return `${hours}:${paddedMinutes}:${paddedSeconds}`;
-    } else if (minutes > 0)
-    {
-        // If there are no hours, format as "MM:SS" or "M:SS"
-        return `${minutes}:${paddedSeconds}`;
-    } else
-    {
-        // If there are only seconds, format as "0:SS"
-        return `0:${paddedSeconds}`;
-    }
-}
-
 function createLoopSlider()
 {
     loopSliderSelected = document.createElement('div');
@@ -653,4 +603,64 @@ function addDynamicStyles()
         }
     `;
     document.head.appendChild(style);
+}
+
+/**
+ * Convert time to seconds
+ * @param {string} time - The time in the format "M:SS", "MM:SS", "H:MM:SS" or "HH:MM:SS"
+ * @returns {number} - The total number of seconds
+ */
+function timeToSeconds(time)
+{
+    // This regex will match the following:
+    // 0:00 - 9:59 | 10:00 - 59:59 | 1:00:00 - 9:59:59 | 10:00:00 - 99:59:59 | 100:00:00 - 999:59:59
+    const regex = /^(\d{1}:[0-5]{1}\d{1})$|^([1-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$/;
+    const parts = time.toString().split(':');
+
+    if (regex.test(time))
+    {
+        let totalSeconds = 0;
+        for (let i = parts.length - 1; i >= 0; i--)
+        {
+            // This converts the string to an integer
+            // We starts with seconds, then minutes, etc.
+            const part = parseInt(parts[i], 10);
+
+            // This will multiply the part by 60 to the power of the position in the array
+            // For example, if the part is 4 and the position is 2 (hours) starting from the back, this will be 4 * 60^2 (3600) = 14400 seconds 
+            totalSeconds += part * Math.pow(60, parts.length - 1 - i);
+        }
+
+        return totalSeconds;
+    }
+}
+
+/**
+ * Convert seconds to time
+ * @param {number} totalSeconds - The total number of seconds
+ * @returns {string} - The time in the format "M:SS", "MM:SS", "H:MM:SS" or "HH:MM:SS" 
+ */
+function secondsToTime(totalSeconds)
+{
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+
+    // Always pad seconds to 2 digits
+    const paddedSeconds = seconds.toString().padStart(2, '0');
+
+    if (hours > 0)
+    {
+        // If there are hours, format as "H:MM:SS" or "HH:MM:SS"
+        const paddedMinutes = minutes.toString().padStart(2, '0');
+        return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+    } else if (minutes > 0)
+    {
+        // If there are no hours, format as "MM:SS" or "M:SS"
+        return `${minutes}:${paddedSeconds}`;
+    } else
+    {
+        // If there are only seconds, format as "0:SS"
+        return `0:${paddedSeconds}`;
+    }
 }
