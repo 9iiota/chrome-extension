@@ -1,433 +1,283 @@
-const youtubeLooper = {
-    loopContainer: null,
-    loopSliderContainer: null,
-    loopStartInput: null,
-    loopEndInput: null,
-    loopSliderSelected: null,
-    loopSliderUnselected: null,
-    videoDurationFormatted: document.querySelector('.ytp-time-duration').innerText,
-    videoDurationSeconds: timeToSeconds(document.querySelector('.ytp-time-duration').innerText),
-    widthPercentageInt: 100,
-    leftMarginPercentageInt: 0,
-    rightMarginPercentageInt: 0,
-    startPointerText: null,
-    endPointerText: null,
-    videoPlayer: document.querySelector('.video-stream'),
-    looping: false,
-    startInput: '0:00',
-    endInput: document.querySelector('.ytp-time-duration').innerText,
-    a: null,
-    b: null,
-    playEventListener: null,
-    pauseEventListener: null
+const PointerType = {
+    START: 'start',
+    END: 'end'
 };
-
-let loopContainer = null;
-let loopSliderContainer = null;
-
-let loopStartInput = null;
-let loopEndInput = null;
-
-let loopSliderSelected = null;
-let loopSliderUnselected = null;
-
+const excludedQualityOptions = ['Auto', 'Premium'];
+const videoPlayer = document.querySelector('.video-stream');
 const videoDurationFormatted = document.querySelector('.ytp-time-duration').innerText;
 const videoDurationSeconds = timeToSeconds(videoDurationFormatted);
 
-let loopSliderUnselectedWidthPercentageInt = 100;
-let loopSliderUnselectedLeftMarginPercentageInt = 0;
-let loopSliderUnselectedRightMarginPercentageInt = 0;
-
-let startPointerText = null;
-let endPointerText = null;
-
-const videoPlayer = document.querySelector('.video-stream');
-
 let looping = false;
+let loopStart = '0:00';
+let loopEnd = videoDurationFormatted;
+let smallIntervalPlayEvent = null;
+let bigIntervalPlayEvent = null;
+let loopSliderBackground = null;
 
-let a, b = null;
-let playEventListener;
-let pauseEventListener;
-
-let startInput = '0:00';
-let endInput = videoDurationFormatted;
-
-const settingsButton = document.querySelector('.ytp-settings-button');
-
-function findQualityLabel()
+chrome.storage.sync.get(['enableSetQuality', 'maxQuality'], function (data)
 {
-    const labels = Array.from(document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem .ytp-menuitem-label'));
-    return labels.find(label => label.textContent.includes('Quality'));
-}
-
-document.addEventListener('visibilitychange', function ()
-{
-    if (!document.hidden)
+    if (!data.enableSetQuality)
     {
-        waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', addLoopButton);
+        return;
     }
+
+    // Wait for settings panel
+    const onSettingsFound = [[clickHighestQuality, data.maxQuality], [focusVideoPlayer, null]];
+    waitForElement('.ytp-panel', onSettingsFound);
 });
 
-chrome.storage.sync.get('enableSetQuality', function (data)
-{
-    if (data.enableSetQuality)
-    {
-        const observer = new MutationObserver((mutationsList, observer) =>
-        {
-            const qualityLabel = findQualityLabel();
+const onTopLevelButtonsFound = [[addLoopButton, null]];
+waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', onTopLevelButtonsFound);
 
-            if (qualityLabel)
-            {
-                chooseHighestQuality();
-                observer.disconnect();
-            }
-        });
-
-        const targetNode = document.querySelector('#ytp-id-18 .ytp-panel');
-        const config = { childList: true, subtree: true };
-
-        if (targetNode)
-        {
-            observer.observe(targetNode, config);
-        } else
-        {
-            console.log('Target node not found, ensure the menu has loaded.');
-        }
-    }
-});
-waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', addLoopButton);
-
-function openQualityMenu()
-{
-    settingsButton.click();
-
-    const settingsMenu = document.querySelectorAll('#ytp-id-18 .ytp-panel .ytp-panel-menu .ytp-menuitem');
-    settingsMenu.forEach(item =>
-    {
-        const label = item.querySelector('.ytp-menuitem-label');
-        if (label.textContent.includes('Quality'))
-        {
-            label.click();
-        }
-    });
-}
-
-function chooseQuality(quality)
-{
-    openQualityMenu();
-
-    let selected = false;
-    const qualityMenu = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
-    qualityMenu.forEach(item =>
-    {
-        const label = item.querySelector('.ytp-menuitem-label');
-        const labelDiv = label.querySelector('div');
-        const labelSpan = labelDiv.querySelector('span');
-        if (labelSpan.textContent.includes(quality))
-        {
-            labelSpan.click();
-            videoPlayer.focus();
-
-            selected = true;
-        }
-    });
-
-    if (!selected)
-    {
-        settingsButton.click();
-        videoPlayer.focus();
-    }
-}
-
-function chooseHighestQuality()
-{
-    openQualityMenu();
-
-    // Retrieve saved quality from Chrome storage
-    chrome.storage.sync.get('videoQuality', function (data)
-    {
-        const savedQualityInt = parseInt(data.videoQuality.split('p')[0], 10);
-        let bestQualityOption = null;
-
-        // Get all quality menu items
-        const qualityMenuItems = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
-
-        // Reverse the quality menu array to start from the worst quality
-        const reversedMenuItems = Array.from(qualityMenuItems).reverse();
-
-        // Iterate through the reversed menu items
-        reversedMenuItems.forEach(item =>
-        {
-            const label = item.querySelector('.ytp-menuitem-label');
-            const labelDiv = label.querySelector('div');
-            const labelSpan = labelDiv.querySelector('span');
-
-            // Skip any "Auto" or "Premium" labels
-            if (labelSpan && !labelSpan.textContent.includes('Auto') && !labelSpan.textContent.includes('Premium'))
-            {
-                const qualityInt = parseInt(labelSpan.textContent.split('p')[0], 10);
-
-                // Select the best quality that is less than or equal to the saved quality
-                if (qualityInt <= savedQualityInt)
-                {
-                    bestQualityOption = labelSpan;
-                } else
-                {
-                    return;  // Stop the loop when a higher quality is found
-                }
-            }
-        });
-
-        // Click the best quality option, if found
-        if (bestQualityOption)
-        {
-            bestQualityOption.click();
-            videoPlayer.focus();
-        } else
-        {
-            console.error('No valid quality option found.');
-        }
-    });
-}
-
-function removeLoopListener()
-{
-    videoPlayer.removeEventListener('play', playEventListener);
-    videoPlayer.removeEventListener('pause', pauseEventListener);
-
-    // Clear intervals to prevent memory leaks
-    clearInterval(a);
-    clearInterval(b);
-
-    looping = false;
-}
-
-function checkCurrentVideoTimeSeconds()
-{
-    return videoPlayer.currentTime.toFixed(0);
-}
-
-function waitForElement(selector, callback)
+function waitForElement(selector, onElementFound)
 {
     const observer = new MutationObserver((mutations, observer) =>
     {
         if (document.querySelector(selector))
         {
-            callback(document.querySelector(selector));
+            for (const callback of onElementFound)
+            {
+                // Call the function with argument if it exists, else call it without arguments
+                callback[0](callback[1] ?? undefined);
+            }
             observer.disconnect();
         }
     });
+    const config = { childList: true, subtree: true };
 
-    observer.observe(document.body,
+    observer.observe(document.body, config);
+}
+
+function clickSettingsButton()
+{
+    const settingsButton = document.querySelector('.ytp-settings-button');
+    settingsButton?.click();
+}
+
+function clickQualityButton()
+{
+    const labels = Array.from(document.querySelectorAll('.ytp-panel .ytp-panel-menu .ytp-menuitem .ytp-menuitem-label'));
+    const qualityButton = labels.find(label => label.textContent.includes('Quality'));
+    qualityButton?.click();
+}
+
+function openQualityMenu()
+{
+    clickSettingsButton();
+    clickQualityButton();
+}
+
+function convertQualityToInt(quality)
+{
+    return parseInt(quality.split('p')[0], 10);
+}
+
+function clickHighestQuality(maxQuality)
+{
+    openQualityMenu();
+
+    const maxQualityInt = convertQualityToInt(maxQuality);
+    const qualityOptions = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
+    for (const option of qualityOptions)
+    {
+        const span = option.querySelector('.ytp-menuitem-label div span');
+        if (span && !excludedQualityOptions.includes(span.textContent))
         {
-            childList: true,
-            subtree: true
-        });
-}
-
-function adjustStartPointer(value)
-{
-    const loopStartInputValue = timeToSeconds(value);
-    if (loopStartInputValue !== false && loopStartInputValue >= 0 && loopStartInputValue <= videoDurationSeconds)
-    {
-        loopSliderUnselectedLeftMarginPercentageInt = (loopStartInputValue / videoDurationSeconds) * 100;
-        loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
-
-        loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
-        loopSliderUnselected.style.marginLeft = `${loopSliderUnselectedLeftMarginPercentageInt}%`;
-
-        startInput = loopStartInput.value;
-        startPointerText.innerText = loopStartInput.value;
-    }
-    else
-    {
-        loopStartInput.value = startInput;
-    }
-}
-
-function adjustEndPointer(value)
-{
-    const loopEndInputValue = timeToSeconds(value);
-    if (loopEndInputValue !== false && loopEndInputValue >= 0 && loopEndInputValue <= videoDurationSeconds)
-    {
-        loopSliderUnselectedRightMarginPercentageInt = 100 - (loopEndInputValue / videoDurationSeconds) * 100;
-        loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
-
-        loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
-        loopSliderUnselected.style.marginRight = `${loopSliderUnselectedRightMarginPercentageInt}%`;
-
-        endInput = loopEndInput.value;
-        endPointerText.innerText = loopEndInput.value;
-    }
-    else
-    {
-        loopEndInput.value = endInput;
-    }
-}
-
-function addLoopButton()
-{
-    let loopButton = document.querySelector('#loop-button');
-    if (!loopButton)
-    {
-        const topLevelButtons = document.querySelector('#top-level-buttons-computed');
-
-        const ytButtonViewModel = document.createElement('yt-button-view-model')
-        ytButtonViewModel.className = 'style-scope ytd-button-renderer';
-
-        const buttonViewModel = document.createElement('button-view-model');
-        buttonViewModel.className = 'yt-spec-button-view-model';
-
-        const loopIcon = document.createElement('img');
-        loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
-        loopIcon.className = 'loop-icon';
-
-        loopButton = document.createElement('button');
-        loopButton.id = 'loop-button';
-        loopButton.className = 'loop-button yt-spec-button-shape-next yt-spec-button-shape-next--tonal yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading yt-spec-button-shape-next--enable-backdrop-filter-experiment';
-        loopButton.addEventListener('click', function ()
-        {
-            loopButton.classList.toggle('pressed');
-
-            if (!looping)
+            const qualityInt = convertQualityToInt(span.textContent);
+            if (qualityInt <= maxQualityInt)
             {
-                loopIcon.src = chrome.runtime.getURL('images/loop-icon-24-pressed.png');
-                addLoopContainer();
-                addDynamicStyles();
-            }
-            else
-            {
-                loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
-                const description = document.querySelector('#bottom-row #description');
-                description.parentNode.removeChild(loopContainer);
-                removeLoopListener();
-            }
-        });
-
-        const loopTextNode = document.createTextNode('Loop');
-
-        topLevelButtons.appendChild(ytButtonViewModel);
-
-        ytButtonViewModel.appendChild(buttonViewModel);
-
-        buttonViewModel.appendChild(loopButton);
-
-        loopButton.appendChild(loopIcon);
-        loopButton.appendChild(loopTextNode);
-    }
-    else
-    {
-        setTimeout(addLoopButton, 1000);
-    }
-}
-
-function addLoopContainer()
-{
-    const bottomRow = document.querySelector('#bottom-row');
-    if (bottomRow)
-    {
-        loopContainer = document.querySelector('#loop-container');
-        if (!loopContainer)
-        {
-            bottomRow.style.display = 'block';
-
-            const descriptionInner = document.querySelector('#description #description-inner');
-            if (descriptionInner)
-            {
-                descriptionInner.style = 'padding-bottom: 12px; padding-top: 12px;';
-
-                loopContainer = document.createElement('div');
-                loopContainer.id = 'loop-container';
-                loopContainer.className = 'loop-container';
-
-                loopSliderContainer = document.createElement('div');
-                loopSliderContainer.id = 'loop-slider-container';
-                loopSliderContainer.className = 'loop-slider-container';
-
-                loopInputsContainer = document.createElement('div');
-                loopInputsContainer.id = 'loop-inputs-container';
-                loopInputsContainer.className = 'loop-inputs-container';
-
-                loopStartInput = document.createElement('input');
-                loopStartInput.className = 'loop-input';
-                loopStartInput.value = startInput;
-                loopStartInput.addEventListener('keydown', (event) =>
-                {
-                    if (event.key === 'Enter' || event.key === 'Tab')
-                    {
-                        adjustStartPointer(loopStartInput.value);
-                    }
-                });
-
-                loopEndInput = document.createElement('input');
-                loopEndInput.className = 'loop-input';
-                loopEndInput.value = endInput;
-                loopEndInput.addEventListener('keydown', (event) =>
-                {
-                    if (event.key === 'Enter' || event.key === 'Tab')
-                    {
-                        adjustEndPointer(loopEndInput.value);
-                    }
-                });
-
-                loopInputsContainer.appendChild(loopStartInput);
-                loopInputsContainer.appendChild(loopEndInput);
-
-                loopContainer.appendChild(loopSliderContainer);
-                loopContainer.appendChild(loopInputsContainer);
-
-                const description = document.querySelector('#bottom-row #description');
-                description.parentNode.insertBefore(loopContainer, description);
-
-                createLoopSlider(loopSliderContainer);
-
-                playEventListener = () =>
-                {
-                    let currentVideoTimeSeconds = checkCurrentVideoTimeSeconds();
-
-                    a = setInterval(() =>
-                    {
-                        if (checkCurrentVideoTimeSeconds() !== currentVideoTimeSeconds)
-                        {
-                            currentVideoTimeSeconds = checkCurrentVideoTimeSeconds();
-                            clearInterval(a);
-
-                            b = setInterval(() =>
-                            {
-                                currentVideoTimeSeconds = checkCurrentVideoTimeSeconds();
-                                if (currentVideoTimeSeconds < timeToSeconds(startInput) || currentVideoTimeSeconds >= timeToSeconds(endInput))
-                                {
-                                    videoPlayer.currentTime = timeToSeconds(startInput);
-                                }
-                            }, 1000);
-                        }
-                    }, 100);
-                };
-                videoPlayer.addEventListener('play', playEventListener);
-
-                pauseEventListener = () =>
-                {
-                    clearInterval(a);
-                    clearInterval(b);
-                };
-                videoPlayer.addEventListener('pause', pauseEventListener);
-
-                looping = true;
-
-                adjustStartPointer(loopStartInput.value);
-                adjustEndPointer(loopEndInput.value);
+                span.click();
+                return true;
             }
         }
     }
 }
 
-function createLoopSlider()
+function focusVideoPlayer()
 {
-    loopSliderSelected = document.createElement('div');
-    loopSliderSelected.className = 'loop-slider-unselected';
+    const videoPlayer = document.querySelector('.video-stream');
+    videoPlayer?.focus();
+}
 
-    loopSliderUnselected = document.createElement('div');
-    loopSliderUnselected.className = 'loop-slider-selected';
+function getCurrentVideoSeconds()
+{
+    return videoPlayer.currentTime.toFixed(0);
+}
+
+/**
+ * Convert time to seconds
+ * @param {string} time - The time in the format "M:SS", "MM:SS", "H:MM:SS" or "HH:MM:SS"
+ * @returns {number} - The total number of seconds
+ */
+function timeToSeconds(time)
+{
+    // This regex will match the following:
+    // 0:00 - 9:59 | 10:00 - 59:59 | 1:00:00 - 9:59:59 | 10:00:00 - 99:59:59 | 100:00:00 - 999:59:59
+    const regex = /^(\d{1}:[0-5]{1}\d{1})$|^([1-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$/;
+    const parts = time.toString().split(':');
+
+    if (regex.test(time))
+    {
+        let totalSeconds = 0;
+        for (let i = parts.length - 1; i >= 0; i--)
+        {
+            // This converts the string to an integer
+            // We starts with seconds, then minutes, etc.
+            const part = parseInt(parts[i], 10);
+
+            // This will multiply the part by 60 to the power of the position in the array
+            // For example, if the part is 4 and the position is 2 (hours) starting from the back, this will be 4 * 60^2 (3600) = 14400 seconds 
+            totalSeconds += part * Math.pow(60, parts.length - 1 - i);
+        }
+
+        return totalSeconds;
+    }
+}
+
+function setSliderPointerPosition(type, formattedTime)
+{
+    const seconds = timeToSeconds(formattedTime);
+    const loopSliderSelection = document.querySelector('.loop-slider-selection');
+    if (type === PointerType.START)
+    {
+        if (seconds >= 0 && seconds < timeToSeconds(loopEnd))
+        {
+            const leftMarginPercentageInt = parseFloat((seconds / videoDurationSeconds) * 100);
+            loopSliderSelection.style.marginLeft = `${leftMarginPercentageInt}%`;
+
+            const startInput = document.querySelector('#loop-start-input');
+            const startPointerTooltip = document.querySelector('.start-pointer-tooltip');
+            startPointerTooltip.innerText = loopStart = startInput.value;
+        }
+        else
+        {
+            const startInput = document.querySelector('#loop-start-input');
+            startInput.value = loopStart;
+        }
+    }
+    else if (type === PointerType.END)
+    {
+        if (seconds > timeToSeconds(loopStart) && seconds <= videoDurationSeconds)
+        {
+            const rightMarginPercentageInt = parseFloat(100 - (seconds / videoDurationSeconds) * 100);
+            loopSliderSelection.style.marginRight = `${rightMarginPercentageInt}%`;
+
+            const endInput = document.querySelector('#loop-end-input');
+            const endPointerTooltip = document.querySelector('.end-pointer-tooltip');
+            endPointerTooltip.innerText = loopEnd = endInput.value;
+        }
+        else
+        {
+            const endInput = document.querySelector('#loop-end-input');
+            endInput.value = loopEnd;
+        }
+    }
+
+    loopSliderSelection.style.width = `${100 - parseFloat(loopSliderSelection.style.marginLeft) - parseFloat(loopSliderSelection.style.marginRight)}%`;
+}
+
+/**
+ * Convert seconds to time
+ * @param {number} totalSeconds - The total number of seconds
+ * @returns {string} - The time in the format "M:SS", "MM:SS", "H:MM:SS" or "HH:MM:SS" 
+ */
+function secondsToTime(totalSeconds)
+{
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+
+    // Always pad seconds to 2 digits
+    const paddedSeconds = seconds.toString().padStart(2, '0');
+
+    if (hours > 0)
+    {
+        // If there are hours, format as "H:MM:SS" or "HH:MM:SS"
+        const paddedMinutes = minutes.toString().padStart(2, '0');
+        return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+    } else if (minutes > 0)
+    {
+        // If there are no hours, format as "MM:SS" or "M:SS"
+        return `${minutes}:${paddedSeconds}`;
+    } else
+    {
+        // If there are only seconds, format as "0:SS"
+        return `0:${paddedSeconds}`;
+    }
+}
+
+function getLoopSliderBackground()
+{
+    if (!loopSliderBackground)
+    {
+        loopSliderBackground = document.querySelector('.loop-slider-background');
+    }
+
+    return loopSliderBackground;
+}
+
+function moveSliderPointer(event, pointerType)
+{
+    let parent = document.querySelector('#loop-container');
+    const loopSliderSelection = document.querySelector('.loop-slider-selection');
+
+    // This will get the total offset of the description container from the left of the page
+    // It does this by looping through each parent element and adding the offsetLeft of each element until it reaches the top of the DOM tree
+    let leftOffset = 0;
+    while (parent.offsetParent != null)
+    {
+        leftOffset += parent.offsetLeft;
+        parent = parent.offsetParent;
+    }
+
+    // This refers to how far along the mouse is in the slider in percentages
+    // For example, if the mouse is halfway through the slider, this will be 50
+    const loopSliderBackground = getLoopSliderBackground();
+    const pos = ((event.pageX - loopSliderBackground.offsetLeft - leftOffset) / loopSliderBackground.offsetWidth * 100).toFixed(4);
+
+    let leftMarginPercentageInt = parseFloat(loopSliderSelection.style.marginLeft) || 0;
+    let rightMarginPercentageInt = parseFloat(loopSliderSelection.style.marginRight) || 0;
+
+    // Check if pointer is within bounds
+    if (pointerType == PointerType.START && pos >= 0 && pos <= 100 - rightMarginPercentageInt)
+    {
+        leftMarginPercentageInt = pos;
+        loopSliderSelection.style.width = `${100 - leftMarginPercentageInt - parseFloat(loopSliderSelection.style.marginRight)}%`;
+        loopSliderSelection.style.marginLeft = `${leftMarginPercentageInt}%`;
+
+        const start = videoDurationSeconds * (leftMarginPercentageInt / 100);
+        const startInput = document.querySelector('#loop-start-input');
+        const startPointerTooltip = document.querySelector('.start-pointer-tooltip');
+        loopStart = startInput.value = startPointerTooltip.innerText = secondsToTime(start);
+    }
+    else if (pointerType == PointerType.END && ((100 - pos) >= 0 && (100 - pos) <= 100 - leftMarginPercentageInt))
+    {
+        rightMarginPercentageInt = 100 - pos;
+        loopSliderSelection.style.width = `${100 - rightMarginPercentageInt - parseFloat(loopSliderSelection.style.marginLeft)}%`;
+        loopSliderSelection.style.marginRight = `${rightMarginPercentageInt}%`;
+
+        const end = videoDurationSeconds - videoDurationSeconds * (rightMarginPercentageInt / 100);
+        const endInput = document.querySelector('#loop-end-input');
+        const endPointerTooltip = document.querySelector('.end-pointer-tooltip');
+        loopEnd = endInput.value = endPointerTooltip.innerText = secondsToTime(end);
+    }
+}
+
+function addLoopSlider()
+{
+    const loopSliderContainer = document.querySelector('#loop-slider-container');
+
+    if (loopSliderBackground)
+    {
+        loopSliderContainer.appendChild(loopSliderBackground);
+        return;
+    }
+
+    loopSliderBackground = document.createElement('div');
+    loopSliderBackground.className = 'loop-slider-background';
+
+    const loopSliderSelection = document.createElement('div');
+    loopSliderSelection.className = 'loop-slider-selection';
 
     const startPointer = document.createElement('div');
     startPointer.className = 'loop-slider-start-pointer';
@@ -437,7 +287,7 @@ function createLoopSlider()
         {
             const moveHandler = (event) =>
             {
-                movePointer(event, 'start');
+                moveSliderPointer(event, PointerType.START);
             }
 
             window.addEventListener('mousemove', moveHandler, false);
@@ -451,8 +301,7 @@ function createLoopSlider()
     const startPointerTooltip = document.createElement('div');
     startPointerTooltip.className = 'start-pointer-tooltip';
 
-    startPointerText = document.createElement('span');
-    startPointerText.innerText = startInput;
+    const startPointerTextNode = document.createTextNode(loopStart);
 
     const endPointer = document.createElement('div');
     endPointer.className = 'loop-slider-end-pointer';
@@ -462,7 +311,7 @@ function createLoopSlider()
         {
             const moveHandler = (event) =>
             {
-                movePointer(event, 'end');
+                moveSliderPointer(event, PointerType.END);
             }
 
             window.addEventListener('mousemove', moveHandler, false);
@@ -476,76 +325,126 @@ function createLoopSlider()
     const endPointerTooltip = document.createElement('div');
     endPointerTooltip.className = 'end-pointer-tooltip';
 
-    endPointerText = document.createElement('span');
-    endPointerText.innerText = endInput;
+    const endPointerTextNode = document.createTextNode(loopEnd)
 
-    startPointerTooltip.appendChild(startPointerText);
-    endPointerTooltip.appendChild(endPointerText);
-
-    loopSliderUnselected.appendChild(startPointer);
-    loopSliderUnselected.appendChild(startPointerTooltip);
-    loopSliderUnselected.appendChild(endPointer);
-    loopSliderUnselected.appendChild(endPointerTooltip);
-
-    loopSliderSelected.appendChild(loopSliderUnselected);
-
-    loopSliderContainer.appendChild(loopSliderSelected);
+    loopSliderContainer.appendChild(loopSliderBackground);
+    loopSliderBackground.appendChild(loopSliderSelection);
+    loopSliderSelection.appendChild(startPointer);
+    loopSliderSelection.appendChild(startPointerTooltip);
+    loopSliderSelection.appendChild(endPointer);
+    loopSliderSelection.appendChild(endPointerTooltip);
+    startPointerTooltip.appendChild(startPointerTextNode);
+    endPointerTooltip.appendChild(endPointerTextNode);
 }
 
-function movePointer(event, pointer)
+function videoPlayEventListener()
 {
-    let _container = loopContainer;
-    let _containerOffsetLeft = 0;
+    let currentVideoSeconds = getCurrentVideoSeconds();
 
-    // This will get the total offset of the description container from the left of the page
-    // It does this by looping through each parent element and adding the offsetLeft of each element until it reaches the top of the DOM tree
-    while (_container.offsetParent != null)
+    smallIntervalPlayEvent = setInterval(() =>
     {
-        _containerOffsetLeft += _container.offsetLeft;
-        _container = _container.offsetParent;
-    }
+        if (getCurrentVideoSeconds() !== currentVideoSeconds)
+        {
+            clearInterval(smallIntervalPlayEvent);
 
-    // This refers to how far along the mouse is in the slider in percentages
-    // For example, if the mouse is halfway through the slider, this will be 50
-    const pos = ((event.pageX - loopSliderSelected.offsetLeft - _containerOffsetLeft) / loopSliderSelected.offsetWidth * 100).toFixed(4);
-    const posInt = parseInt(pos);
-
-    switch (pointer)
-    {
-        case 'start':
-            if (posInt >= 0 && posInt <= 100 - loopSliderUnselectedRightMarginPercentageInt - 1)
+            bigIntervalPlayEvent = setInterval(() =>
             {
-                loopSliderUnselectedLeftMarginPercentageInt = posInt;
-                loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
-
-                loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
-                loopSliderUnselected.style.marginLeft = `${loopSliderUnselectedLeftMarginPercentageInt}%`;
-
-                const loopStartInputValue = videoDurationSeconds * (loopSliderUnselectedLeftMarginPercentageInt / 100);
-                startInput = secondsToTime(loopStartInputValue);
-                loopStartInput.value = startInput;
-                startPointerText.innerText = startInput;
-            }
-            break;
-        case 'end':
-            if ((100 - posInt) >= 0 && (100 - posInt) <= 100 - loopSliderUnselectedLeftMarginPercentageInt - 1)
-            {
-                loopSliderUnselectedRightMarginPercentageInt = 100 - posInt;
-                loopSliderUnselectedWidthPercentageInt = 100 - loopSliderUnselectedLeftMarginPercentageInt - loopSliderUnselectedRightMarginPercentageInt;
-
-                loopSliderUnselected.style.width = `${loopSliderUnselectedWidthPercentageInt}%`;
-                loopSliderUnselected.style.marginRight = `${loopSliderUnselectedRightMarginPercentageInt}%`;
-
-                const loopEndInputValue = videoDurationSeconds - videoDurationSeconds * (loopSliderUnselectedRightMarginPercentageInt / 100);
-                endInput = secondsToTime(loopEndInputValue);
-                loopEndInput.value = endInput;
-                endPointerText.innerText = endInput;
-            }
-            break;
-    }
+                currentVideoSeconds = getCurrentVideoSeconds();
+                if (currentVideoSeconds < timeToSeconds(loopStart) || currentVideoSeconds >= timeToSeconds(loopEnd))
+                {
+                    videoPlayer.currentTime = timeToSeconds(loopStart);
+                }
+            }, 1000);
+        }
+    }, 100);
 }
 
-// Function to add dynamic styles
+function videoPauseEventListener()
+{
+    clearInterval(smallIntervalPlayEvent);
+    clearInterval(bigIntervalPlayEvent);
+}
+
+function addLoopContainer()
+{
+    const bottomRow = document.querySelector('#bottom-row');
+    if (!bottomRow)
+    {
+        return;
+    }
+
+    let loopContainer = document.querySelector('#loop-container');
+    if (loopContainer)
+    {
+        return;
+    }
+
+    const descriptionInner = document.querySelector('#description #description-inner');
+    if (!descriptionInner)
+    {
+        return;
+    }
+
+    bottomRow.style.display = 'block';
+    descriptionInner.style = 'padding-bottom: 12px; padding-top: 12px;';
+
+    loopContainer = document.createElement('div');
+    loopContainer.id = 'loop-container';
+    loopContainer.className = 'loop-container';
+
+    const sliderContainer = document.createElement('div');
+    sliderContainer.id = 'loop-slider-container';
+    sliderContainer.className = 'loop-slider-container';
+
+    const inputsContainer = document.createElement('div');
+    inputsContainer.id = 'loop-inputs-container';
+    inputsContainer.className = 'loop-inputs-container';
+
+    const startInput = document.createElement('input');
+    startInput.id = 'loop-start-input';
+    startInput.className = 'loop-input';
+    startInput.value = loopStart;
+    startInput.addEventListener('keydown', (event) =>
+    {
+        if (event.key === 'Enter' || event.key === 'Tab')
+        {
+            setSliderPointerPosition(PointerType.START, startInput.value);
+        }
+    });
+
+    const endInput = document.createElement('input');
+    endInput.id = 'loop-end-input';
+    endInput.className = 'loop-input';
+    endInput.value = loopEnd;
+    endInput.addEventListener('keydown', (event) =>
+    {
+        if (event.key === 'Enter' || event.key === 'Tab')
+        {
+            setSliderPointerPosition(PointerType.END, endInput.value);
+        }
+    });
+
+    const description = document.querySelector('#bottom-row #description');
+    description.parentNode.insertBefore(loopContainer, description);
+    loopContainer.appendChild(sliderContainer);
+    loopContainer.appendChild(inputsContainer);
+    inputsContainer.appendChild(startInput);
+    inputsContainer.appendChild(endInput);
+
+    addLoopSlider();
+
+    videoPlayer.addEventListener('play', videoPlayEventListener);
+    videoPlayer.addEventListener('pause', videoPauseEventListener);
+
+    if (!videoPlayer.paused)
+    {
+        videoPlayEventListener();
+    }
+
+    setSliderPointerPosition(PointerType.START, startInput.value);
+    setSliderPointerPosition(PointerType.END, endInput.value);
+}
+
 function addDynamicStyles()
 {
     const style = document.createElement('style');
@@ -605,62 +504,62 @@ function addDynamicStyles()
     document.head.appendChild(style);
 }
 
-/**
- * Convert time to seconds
- * @param {string} time - The time in the format "M:SS", "MM:SS", "H:MM:SS" or "HH:MM:SS"
- * @returns {number} - The total number of seconds
- */
-function timeToSeconds(time)
+function removeLoopListener()
 {
-    // This regex will match the following:
-    // 0:00 - 9:59 | 10:00 - 59:59 | 1:00:00 - 9:59:59 | 10:00:00 - 99:59:59 | 100:00:00 - 999:59:59
-    const regex = /^(\d{1}:[0-5]{1}\d{1})$|^([1-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$|^([1-9]{1}\d{1}\d{1}:[0-5]{1}\d{1}:[0-5]{1}\d{1})$/;
-    const parts = time.toString().split(':');
+    videoPauseEventListener();
 
-    if (regex.test(time))
-    {
-        let totalSeconds = 0;
-        for (let i = parts.length - 1; i >= 0; i--)
-        {
-            // This converts the string to an integer
-            // We starts with seconds, then minutes, etc.
-            const part = parseInt(parts[i], 10);
-
-            // This will multiply the part by 60 to the power of the position in the array
-            // For example, if the part is 4 and the position is 2 (hours) starting from the back, this will be 4 * 60^2 (3600) = 14400 seconds 
-            totalSeconds += part * Math.pow(60, parts.length - 1 - i);
-        }
-
-        return totalSeconds;
-    }
+    videoPlayer.removeEventListener('play', videoPlayEventListener);
+    videoPlayer.removeEventListener('pause', videoPauseEventListener);
 }
 
-/**
- * Convert seconds to time
- * @param {number} totalSeconds - The total number of seconds
- * @returns {string} - The time in the format "M:SS", "MM:SS", "H:MM:SS" or "HH:MM:SS" 
- */
-function secondsToTime(totalSeconds)
+function addLoopButton()
 {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = Math.floor(totalSeconds % 60);
+    let loopButton = document.querySelector('#loop-button');
+    if (!loopButton)
+    {
+        const topLevelButtons = document.querySelector('#top-level-buttons-computed');
 
-    // Always pad seconds to 2 digits
-    const paddedSeconds = seconds.toString().padStart(2, '0');
+        const ytButtonViewModel = document.createElement('yt-button-view-model')
+        ytButtonViewModel.className = 'style-scope ytd-button-renderer';
 
-    if (hours > 0)
-    {
-        // If there are hours, format as "H:MM:SS" or "HH:MM:SS"
-        const paddedMinutes = minutes.toString().padStart(2, '0');
-        return `${hours}:${paddedMinutes}:${paddedSeconds}`;
-    } else if (minutes > 0)
-    {
-        // If there are no hours, format as "MM:SS" or "M:SS"
-        return `${minutes}:${paddedSeconds}`;
-    } else
-    {
-        // If there are only seconds, format as "0:SS"
-        return `0:${paddedSeconds}`;
+        const buttonViewModel = document.createElement('button-view-model');
+        buttonViewModel.className = 'yt-spec-button-view-model';
+
+        loopButton = document.createElement('button');
+        loopButton.id = 'loop-button';
+        loopButton.className = 'loop-button yt-spec-button-shape-next yt-spec-button-shape-next--tonal yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading yt-spec-button-shape-next--enable-backdrop-filter-experiment';
+        loopButton.addEventListener('click', function ()
+        {
+            loopButton.classList.toggle('pressed');
+
+            if (!looping)
+            {
+                addLoopContainer();
+                addDynamicStyles();
+            }
+            else
+            {
+                removeLoopListener();
+
+                const loopContainer = document.querySelector('#loop-container');
+                const description = document.querySelector('#bottom-row #description');
+                description.parentNode.removeChild(loopContainer);
+            }
+
+            looping = !looping;
+            loopIcon.src = looping ? chrome.runtime.getURL('images/loop-icon-24-pressed.png') : chrome.runtime.getURL('images/loop-icon-24.png');
+        });
+
+        const loopIcon = document.createElement('img');
+        loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
+        loopIcon.className = 'loop-icon';
+
+        const loopTextNode = document.createTextNode('Loop');
+
+        topLevelButtons.appendChild(ytButtonViewModel);
+        ytButtonViewModel.appendChild(buttonViewModel);
+        buttonViewModel.appendChild(loopButton);
+        loopButton.appendChild(loopIcon);
+        loopButton.appendChild(loopTextNode);
     }
 }

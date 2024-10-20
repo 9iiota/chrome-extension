@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
-	"name": "Youtube Video Looper",
-	"version": "1.0",
-	"description": "Adds a custom loop button to YouTube video pages",
+	"name": "YouTube Helper",
+	"version": "2.0",
+	"description": "Adds helper functions to YouTube",
 	"options_page": "popup.html",
 	"permissions": [
 		"activeTab",

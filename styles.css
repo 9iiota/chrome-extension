@@ -29,7 +29,7 @@
     padding-bottom: 12px;
 }
 
-.loop-slider-selected
+.loop-slider-selection
 {
     background-color: #f1f1f1;
     height: 100%;
@@ -41,7 +41,7 @@
     z-index: 1;
 }
 
-.loop-slider-unselected
+.loop-slider-background
 {
     background-color: #aaaaaa;
     border-radius: 8px;

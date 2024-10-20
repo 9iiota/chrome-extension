@@ -1,7 +1,7 @@
 // Load saved quality option when the options page is opened
 document.addEventListener('DOMContentLoaded', function ()
 {
-    chrome.storage.sync.get(['enableSetQuality', 'videoQuality'], function (data)
+    chrome.storage.sync.get(['enableSetQuality', 'maxQuality'], function (data)
     {
         const enableSetQuality = data.enableSetQuality || false; // Default to false if nothing is saved
         document.getElementById('enableSetQuality').checked = enableSetQuality;
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function ()
         {
             dropdown.style.display = 'block';
 
-            const savedQuality = data.videoQuality || '1080p'; // Default to 1080p if nothing is saved
+            const savedQuality = data.maxQuality || '1080p'; // Default to 1080p if nothing is saved
             document.getElementById('qualityOptions').value = savedQuality;
         }
         else
@@ -27,7 +27,7 @@ document.getElementById('qualityOptions').addEventListener('change', function ()
     const selectedQuality = document.getElementById('qualityOptions').value;
 
     // Save the selected quality to Chrome storage
-    chrome.storage.sync.set({ videoQuality: selectedQuality });
+    chrome.storage.sync.set({ maxQuality: selectedQuality });
 });
 
 document.getElementById('enableSetQuality').addEventListener('change', function ()
@@ -37,9 +37,9 @@ document.getElementById('enableSetQuality').addEventListener('change', function 
 
     if (enabled)
     {
-        chrome.storage.sync.get('videoQuality', function (data)
+        chrome.storage.sync.get('maxQuality', function (data)
         {
-            const savedQuality = data.videoQuality || '1080p'; // Default to 1080p if nothing is saved
+            const savedQuality = data.maxQuality || '1080p'; // Default to 1080p if nothing is saved
             document.getElementById('qualityOptions').value = savedQuality;
         });
     }
