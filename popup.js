@@ -25,17 +25,15 @@ document.addEventListener('DOMContentLoaded', function ()
 document.getElementById('qualityOptions').addEventListener('change', function ()
 {
     const selectedQuality = document.getElementById('qualityOptions').value;
-
-    // Save the selected quality to Chrome storage
     chrome.storage.sync.set({ maxQuality: selectedQuality });
 });
 
 document.getElementById('enableSetQuality').addEventListener('change', function ()
 {
-    const enabled = document.getElementById('enableSetQuality').checked;
-    const dropdown = document.getElementById('qualityDropdown');
+    const setQualityEnabled = document.getElementById('enableSetQuality').checked;
+    const qualityDropdown = document.getElementById('qualityDropdown');
 
-    if (enabled)
+    if (setQualityEnabled)
     {
         chrome.storage.sync.get('maxQuality', function (data)
         {
@@ -44,19 +42,12 @@ document.getElementById('enableSetQuality').addEventListener('change', function 
         });
     }
 
-    showQualityOptions(dropdown);
+    showQualityOptions(qualityDropdown);
 
-    chrome.storage.sync.set({ enableSetQuality: enabled });
+    chrome.storage.sync.set({ enableSetQuality: setQualityEnabled });
 });
 
 function showQualityOptions(dropdown)
 {
-    if (dropdown.style.display === 'none')
-    {
-        dropdown.style.display = 'block';
-    }
-    else
-    {
-        dropdown.style.display = 'none';
-    }
+    dropdown.style.display = 'none' ? 'block' : 'none';
 }

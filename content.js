@@ -29,6 +29,14 @@ chrome.storage.sync.get(['enableSetQuality', 'maxQuality'], function (data)
 const onTopLevelButtonsFound = [[addLoopButton, null]];
 waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', onTopLevelButtonsFound);
 
+document.addEventListener('visibilitychange', function ()
+{
+    if (!document.hidden)
+    {
+        waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', onTopLevelButtonsFound);
+    }
+});
+
 function waitForElement(selector, onElementFound)
 {
     const observer = new MutationObserver((mutations, observer) =>
@@ -81,7 +89,8 @@ function clickHighestQuality(maxQuality)
     for (const option of qualityOptions)
     {
         const span = option.querySelector('.ytp-menuitem-label div span');
-        if (span && !excludedQualityOptions.includes(span.textContent))
+        const isExcluded = excludedQualityOptions.some(option => span.textContent.includes(option));
+        if (span && !isExcluded)
         {
             const qualityInt = convertQualityToInt(span.textContent);
             if (qualityInt <= maxQualityInt)
@@ -134,6 +143,7 @@ function timeToSeconds(time)
     }
 }
 
+// This function is used when the user inputs a time in the input field
 function setSliderPointerPosition(type, formattedTime)
 {
     const seconds = timeToSeconds(formattedTime);
@@ -216,6 +226,7 @@ function getLoopSliderBackground()
     return loopSliderBackground;
 }
 
+// This function is used when dragging a pointer to a new position
 function moveSliderPointer(event, pointerType)
 {
     let parent = document.querySelector('#loop-container');
