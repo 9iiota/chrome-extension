@@ -23,12 +23,12 @@
 		{
 			"matches": ["*://*.youtube.com/watch*"],
 			"css": ["styles.css"],
-			"js": ["youtube.js"]
+			"js": ["YouTube/content.js"]
 		},
 		{
             "matches": ["*://*.tiktok.com/*"],
             "css": ["styles.css"],
-            "js": ["tiktok.js"]
+            "js": ["TikTok/content.js"]
         }
 	],
 	"web_accessible_resources": [

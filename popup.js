@@ -6,11 +6,28 @@ document.addEventListener('DOMContentLoaded', function ()
         button.addEventListener('click', (event) =>
         {
             openTab(event, button.textContent);
+
+            chrome.storage.sync.set({ currentTab: button.textContent });
         });
     });
 
-    chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying'], function (data)
+    chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying', 'currentTab'], function (data)
     {
+        const currentTab = data.currentTab || 'YouTube';
+        const tabButtons = document.querySelectorAll('.tablinks');
+        tabButtons.forEach(button =>
+        {
+            if (button.textContent.includes(currentTab))
+            {
+                tabButton = button;
+            }
+        });
+
+        if (tabButton)
+        {
+            openTab({ currentTarget: tabButton }, currentTab);
+        }
+
         const enableSetQuality = data.enableSetQuality || false; // Default to false if nothing is saved
         document.getElementById('enableSetQuality').checked = enableSetQuality;
 
