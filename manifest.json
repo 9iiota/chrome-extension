@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
-	"name": "YouTube Helper",
+	"name": "YouTube & TikTok Enhancer",
 	"version": "2.0",
-	"description": "Adds helper functions to YouTube",
+	"description": "Adds convenient features for YouTube and TikTok",
 	"options_page": "popup.html",
 	"permissions": [
 		"activeTab",
@@ -23,8 +23,13 @@
 		{
 			"matches": ["*://*.youtube.com/watch*"],
 			"css": ["styles.css"],
-			"js": ["content.js"]
-		}
+			"js": ["youtube.js"]
+		},
+		{
+            "matches": ["*://*.tiktok.com/*"],
+            "css": ["styles.css"],
+            "js": ["tiktok.js"]
+        }
 	],
 	"web_accessible_resources": [
 		{

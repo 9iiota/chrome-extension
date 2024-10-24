@@ -7,29 +7,47 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-    <div class="popup-container">
-        <h1>Extension Settings</h1>
-        <label>Automatically set highest quality:</label>
-        <input type="checkbox" id="enableSetQuality">
-        </label>
-        <div id="qualityDropdown">
-            <label>Highest preferred quality:</label>
-            <select id="qualityOptions">
-                <option value="4320p">4320p</option>
-                <option value="2160p">2160p</option>
-                <option value="1440p">1440p</option>
-                <option value="1080p" selected>1080p</option>
-                <option value="720p">720p</option>
-                <option value="480p">480p</option>
-                <option value="360p">360p</option>
-                <option value="240p">240p</option>
-                <option value="144p">144p</option>
-            </select>
+<body class="popup-body">
+    <!-- <h1 class="popup-title">Extension Settings</h1> -->
+    <div class="tab">
+        <button id="youtube-button" class="tablinks">YouTube</button>
+        <button id="tiktok-button" class="tablinks">TikTok</button>
+    </div>
+    <div id="YouTube" class="tabcontent">
+        <div class="enableSetQualityContainer">
+            <label>Automatically set highest quality:</label>
+            <input type="checkbox" id="enableSetQuality">
+        </div>
+        <div class="onSetQualityEnabled">
+            <div>
+                <label>Allow Premium Quality:</label>
+                <input type="checkbox" id="allowPremiumQuality">
+            </div>
+            <div>
+                <label>Highest preferred quality:</label>
+                <select id="quality">
+                    <option value="4320p">4320p</option>
+                    <option value="2160p">2160p</option>
+                    <option value="1440p">1440p</option>
+                    <option value="1080p" selected>1080p</option>
+                    <option value="720p">720p</option>
+                    <option value="480p">480p</option>
+                    <option value="360p">360p</option>
+                    <option value="240p">240p</option>
+                    <option value="144p">144p</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div id="TikTok" class="tabcontent">
+        <div>
+            <label>Continue playing in background:</label>
+            <input type="checkbox" id="continuePlaying">
         </div>
     </div>
 
-    <script src="popup.js"></script>
+    <script src="popup.js">
+    </script>
 </body>
 
 </html>

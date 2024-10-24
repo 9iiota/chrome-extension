@@ -2,11 +2,11 @@ const PointerType = {
     START: 'start',
     END: 'end'
 };
-const excludedQualityOptions = ['Auto', 'Premium'];
 const videoPlayer = document.querySelector('.video-stream');
 const videoDurationFormatted = document.querySelector('.ytp-time-duration').innerText;
 const videoDurationSeconds = timeToSeconds(videoDurationFormatted);
 
+let excludedQualityOptions = ['Auto', 'Premium'];
 let looping = false;
 let loopStart = '0:00';
 let loopEnd = videoDurationFormatted;
@@ -14,22 +14,29 @@ let smallIntervalPlayEvent = null;
 let bigIntervalPlayEvent = null;
 let loopSliderBackground = null;
 
-chrome.storage.sync.get(['enableSetQuality', 'maxQuality'], function (data)
+chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality'], function (data)
 {
     if (!data.enableSetQuality)
     {
         return;
     }
 
+    if (data.allowPremiumQuality)
+    {
+        excludedQualityOptions = excludedQualityOptions.filter(option => option !== 'Premium');
+    }
+
     // Wait for settings panel
     const onSettingsFound = [[clickHighestQuality, data.maxQuality], [focusVideoPlayer, null]];
     waitForElement('.ytp-panel', onSettingsFound);
+
+    console.log(data);
 });
 
 const onTopLevelButtonsFound = [[addLoopButton, null]];
 waitForElement('.style-scope ytd-watch-metadata #top-level-buttons-computed', onTopLevelButtonsFound);
 
-document.addEventListener('visibilitychange', function ()
+window.addEventListener('visibilitychange', function ()
 {
     if (!document.hidden)
     {
@@ -528,7 +535,7 @@ function addLoopButton()
     let loopButton = document.querySelector('#loop-button');
     if (!loopButton)
     {
-        const topLevelButtons = document.querySelector('#top-level-buttons-computed');
+        const topLevelButtons = document.querySelector('.style-scope ytd-watch-metadata #top-level-buttons-computed');
 
         const ytButtonViewModel = document.createElement('yt-button-view-model')
         ytButtonViewModel.className = 'style-scope ytd-button-renderer';
