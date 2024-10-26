@@ -220,7 +220,6 @@
     outline: none;
     cursor: pointer;
     padding: 14px 16px;
-    transition: 0.3s;
     color: #ffffff;
 }
 
@@ -250,22 +249,16 @@
     line-height: 2;
 }
 
-.tabcontent
+.popup-body label
 {
-    animation: fadeEffect 1s;
-    /* Fading effect takes 1 second */
+    padding-right: 4px;
+    vertical-align: middle;
 }
 
-/* Go from zero to full opacity */
-@keyframes fadeEffect
+.popup-body input,
+.popup-body select
 {
-    from
-    {
-        opacity: 0;
-    }
-
-    to
-    {
-        opacity: 1;
-    }
+    border: unset;
+    margin: unset;
+    vertical-align: middle;
 }

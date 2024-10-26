@@ -29,6 +29,11 @@
             "matches": ["*://*.tiktok.com/*"],
             "css": ["styles.css"],
             "js": ["TikTok/content.js"]
+        },
+		{
+            "matches": ["*://*.twitch.tv/*"],
+            "css": ["styles.css"],
+            "js": ["Twitch/content.js"]
         }
 	],
 	"web_accessible_resources": [

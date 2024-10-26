@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function ()
         });
     });
 
-    chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying', 'currentTab'], function (data)
+    chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying', 'currentTab', 'enableTheatreMode'], function (data)
     {
         const currentTab = data.currentTab || 'YouTube';
         const tabButtons = document.querySelectorAll('.tablinks');
@@ -49,6 +49,9 @@ document.addEventListener('DOMContentLoaded', function ()
 
         const continuePlaying = data.continuePlaying || false;
         document.getElementById('continuePlaying').checked = continuePlaying;
+
+        const enableTheatreMode = data.enableTheatreMode || false;
+        document.getElementById('enableTheatreMode').checked = enableTheatreMode;
     });
 });
 
@@ -91,6 +94,13 @@ document.getElementById('continuePlaying').addEventListener('change', function (
 {
     const continuePlaying = document.getElementById('continuePlaying').checked;
     chrome.storage.sync.set({ continuePlaying: continuePlaying });
+});
+
+// Save enable theatre mode
+document.getElementById('enableTheatreMode').addEventListener('change', function ()
+{
+    const enableTheatreMode = document.getElementById('enableTheatreMode').checked;
+    chrome.storage.sync.set({ enableTheatreMode: enableTheatreMode });
 });
 
 function onSetQualitySwitch()
