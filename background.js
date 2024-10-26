@@ -8,21 +8,76 @@ chrome.action.onClicked.addListener(() =>
 
 chrome.runtime.onInstalled.addListener(() =>
 {
-    // const secondsToMidnight = getSecondsToTomorrow();
-    // setTimeout(() =>
-    // {
-    fetch('https://namazvakitleri.diyanet.gov.tr/tr-TR/13980/rotterdam-icin-namaz-vakti')
-        .then(response => response.text())
-        .then(data =>
+    chrome.storage.sync.get(['namazTimes', 'cityCode', 'badgeColor'], data =>
+    {
+        const timerInterval = setInterval(() =>
         {
-            const matches = [...data.matchAll(namazTimeRegex)];
+            const currentDate = getCurrentDate();
+            let { namazTimes } = data;
+            if (data.namazTimes && data.namazTimes.at(-1) !== currentDate)
+            {
+                console.log(data.cityCode);
+                (async () =>
+                {
+                    namazTimes = [...await getNamazTimes(data.cityCode), currentDate];
+                    chrome.storage.sync.set({ namazTimes: namazTimes });
+                })();
+            }
 
-            chrome.storage.sync.set({ namazTimes: matches });
+            const timesInSeconds = namazTimes.map(time =>
+            {
+                const [hours, minutes] = time.at(-1).split(":").map(Number); // Split and convert to numbers
+                return (hours * 60 + minutes) * 60; // Convert to total seconds
+            });
 
-            console.log(matches); // Logs all matches
-        })
-        .catch(error => console.error('Error:', error));
-    // }, secondsToMidnight * 1000);
+            const now = new Date();
+            const currentTimeSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const nextNamazIndex = timesInSeconds.findIndex(time => time > currentTimeSeconds);
+            const nextNamazTimeSeconds = timesInSeconds[nextNamazIndex];
+            const secondsToNextNamaz = nextNamazTimeSeconds - currentTimeSeconds;
+
+            const hours = Math.floor(secondsToNextNamaz / 3600);
+            const minutes = Math.floor((secondsToNextNamaz % 3600) / 60);
+            let formattedTime;
+            let color;
+            if (hours > 0)
+            {
+                formattedTime = `${hours}:${minutes}`;
+                color = '#00ff00';
+            }
+            else
+            {
+                const seconds = secondsToNextNamaz % 60;
+                formattedTime = `${minutes}:${seconds}`;
+                color = '#ff0000';
+            }
+
+            if (color !== data.badgeColor)
+            {
+                chrome.action.setBadgeBackgroundColor({ color: color });
+                chrome.storage.sync.set({ badgeColor: color });
+            }
+
+            if (secondsToNextNamaz > 0)
+            {
+                updateBadge(formattedTime);
+            }
+        }, 1000);
+    });
+
+    //         const timerInterval = setInterval(() =>
+    //         {
+    //             if (secondsToNextNamaz > 0)
+    //             {
+    //                 updateBadge(formattedTime);
+    //             }
+    //             else
+    //             {
+    //                 clearInterval(timerInterval);
+    //             }
+    //         }, 1000);
+    //     })
+    //     .catch(error => console.error('Error:', error));
 });
 
 // chrome.runtime.onStartup.addListener(() =>
@@ -36,14 +91,27 @@ chrome.runtime.onInstalled.addListener(() =>
 //     // }, secondsToMidnight * 1000);
 // });
 
-function getSecondsToTomorrow()
+function getCurrentDate()
 {
-    const now = new Date();
-    const midnight = new Date(now);
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+}
 
-    // Set to midnight of the next day
-    midnight.setHours(24, 0, 0, 0);
+async function getNamazTimes(cityCode)
+{
+    return new Promise((resolve) =>
+    {
+        fetch(`https://namazvakitleri.diyanet.gov.tr/tr-TR/${cityCode}`)
+            .then(response => response.text())
+            .then(data =>
+            {
+                const matches = [...data.matchAll(namazTimeRegex)];
+                resolve(matches);
+            })
+    });
+}
 
-    // Calculate the difference in seconds
-    return Math.floor((midnight - now) / 1000);
+function updateBadge(text)
+{
+    chrome.action.setBadgeText({ text: text });
 }

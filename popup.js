@@ -120,6 +120,16 @@ document.getElementById('enableTheatreMode').addEventListener('change', function
     chrome.storage.sync.set({ enableTheatreMode: enableTheatreMode });
 });
 
+// Save city code
+document.getElementById('cityCode').addEventListener('keydown', (event) =>
+{
+    if (event.key === 'Enter' || event.key === 'Tab')
+    {
+        const cityCode = document.getElementById('cityCode').value;
+        chrome.storage.sync.set({ cityCode: cityCode });
+    }
+});
+
 function onSetQualitySwitch()
 {
     const onSetQualityEnabled = document.querySelector('.onSetQualityEnabled');
@@ -163,7 +173,7 @@ function displayNamazTimes(namazTimes)
     const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
     // Clear any existing content
-    container.innerHTML = '';
+    // container.innerHTML = '';
 
     // Loop through the array and create a new element for each item
     for (let i = 0; i < namazTimes.length; i++)
