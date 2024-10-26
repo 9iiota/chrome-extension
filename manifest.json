@@ -10,6 +10,9 @@
 		"storage",
 		"tabs"
 	],
+	"host_permissions": [
+		"*://*.namazvakitleri.diyanet.gov.tr/*"
+	],
 	"action": {
 		"default_popup": "popup.html",
 		"default_icon": {

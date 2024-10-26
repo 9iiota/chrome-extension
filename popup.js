@@ -1,5 +1,19 @@
+const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
+
 document.addEventListener('DOMContentLoaded', function ()
 {
+    fetch('https://namazvakitleri.diyanet.gov.tr/tr-TR/13980/rotterdam-icin-namaz-vakti')
+        .then(response => response.text())
+        .then(data =>
+        {
+            const matches = [...data.matchAll(namazTimeRegex)];
+
+            chrome.storage.sync.set({ namazTimes: matches });
+
+            console.log(matches); // Logs all matches
+        })
+        .catch(error => console.error('Error:', error));
+
     const tabButtons = document.querySelectorAll('.tablinks');
     tabButtons.forEach(button =>
     {
@@ -11,8 +25,11 @@ document.addEventListener('DOMContentLoaded', function ()
         });
     });
 
-    chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying', 'currentTab', 'enableTheatreMode'], function (data)
+    chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying', 'currentTab', 'enableTheatreMode', 'namazTimes'], function (data)
     {
+        const namazTimes = data.namazTimes || [];
+        displayNamazTimes(namazTimes);
+
         const currentTab = data.currentTab || 'YouTube';
         const tabButtons = document.querySelectorAll('.tablinks');
         tabButtons.forEach(button =>
@@ -137,4 +154,26 @@ function openTab(event, tabName)
     // Show the current tab, and add an "active" class to the button that opened the tab
     document.getElementById(tabName).style.display = "block";
     event.currentTarget.className += " active";
+}
+
+function displayNamazTimes(namazTimes)
+{
+    const container = document.getElementById('Namaz'); // Assuming you have a div with this ID in your popup HTML
+
+    const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+    // Clear any existing content
+    container.innerHTML = '';
+
+    // Loop through the array and create a new element for each item
+    for (let i = 0; i < namazTimes.length; i++)
+    {
+        const namazTime = namazTimes[i][1];
+        const namazName = namazNames[i];
+
+        const p = document.createElement('p');
+        p.textContent = `${namazName}: ${namazTime}`;
+
+        container.appendChild(p);
+    }
 }
