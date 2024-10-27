@@ -27,9 +27,6 @@ document.addEventListener('DOMContentLoaded', function ()
 
     chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality', 'continuePlaying', 'currentTab', 'enableTheatreMode', 'namazTimes'], function (data)
     {
-        const namazTimes = data.namazTimes || [];
-        displayNamazTimes(namazTimes);
-
         const currentTab = data.currentTab || 'YouTube';
         const tabButtons = document.querySelectorAll('.tablinks');
         tabButtons.forEach(button =>
@@ -69,6 +66,12 @@ document.addEventListener('DOMContentLoaded', function ()
 
         const enableTheatreMode = data.enableTheatreMode || false;
         document.getElementById('enableTheatreMode').checked = enableTheatreMode;
+
+        const namazTimes = data.namazTimes || [];
+        displayNamazTimes(namazTimes);
+
+        const cityCode = data.cityCode || '13980'; // Default to Rotterdam if nothing is saved
+        document.getElementById('cityCode').value = cityCode;
     });
 });
 

@@ -10,25 +10,30 @@ chrome.runtime.onInstalled.addListener(() =>
 {
     chrome.storage.sync.get(['namazTimes', 'cityCode', 'badgeColor'], data =>
     {
+        let namazTimes = data.namazTimes || [];
+        let timesInSeconds = namazTimes.map(time =>
+        {
+            const [hours, minutes] = time.at(-1).split(":").map(Number); // Split and convert to numbers
+            return (hours * 60 + minutes) * 60; // Convert to total seconds
+        });
+
         const timerInterval = setInterval(() =>
         {
             const currentDate = getCurrentDate();
-            let { namazTimes } = data;
-            if (data.namazTimes && data.namazTimes.at(-1) !== currentDate)
+            if (namazTimes.length === 0 || namazTimes.at(-1) !== currentDate)
             {
-                console.log(data.cityCode);
                 (async () =>
                 {
                     namazTimes = [...await getNamazTimes(data.cityCode), currentDate];
                     chrome.storage.sync.set({ namazTimes: namazTimes });
+
+                    timesInSeconds = namazTimes.map(time =>
+                    {
+                        const [hours, minutes] = time.at(-1).split(":").map(Number); // Split and convert to numbers
+                        return (hours * 60 + minutes) * 60; // Convert to total seconds
+                    });
                 })();
             }
-
-            const timesInSeconds = namazTimes.map(time =>
-            {
-                const [hours, minutes] = time.at(-1).split(":").map(Number); // Split and convert to numbers
-                return (hours * 60 + minutes) * 60; // Convert to total seconds
-            });
 
             const now = new Date();
             const currentTimeSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -37,7 +42,7 @@ chrome.runtime.onInstalled.addListener(() =>
             const secondsToNextNamaz = nextNamazTimeSeconds - currentTimeSeconds;
 
             const hours = Math.floor(secondsToNextNamaz / 3600);
-            const minutes = Math.floor((secondsToNextNamaz % 3600) / 60);
+            const minutes = String(Math.floor((secondsToNextNamaz % 3600) / 60)).padStart(2, '0');
             let formattedTime;
             let color;
             if (hours > 0)
@@ -47,7 +52,7 @@ chrome.runtime.onInstalled.addListener(() =>
             }
             else
             {
-                const seconds = secondsToNextNamaz % 60;
+                const seconds = String(secondsToNextNamaz % 60).padStart(2, '0');
                 formattedTime = `${minutes}:${seconds}`;
                 color = '#ff0000';
             }
