@@ -10,6 +10,16 @@ chrome.runtime.onInstalled.addListener(() =>
 {
     chrome.storage.sync.get(['namazTimes', 'cityCode', 'badgeColor'], data =>
     {
+        chrome.action.getBadgeBackgroundColor({}, badgeColor => 
+        {
+            badgeColor = rgbaArrayToHex(badgeColor);
+            if (badgeColor !== data.badgeColor)
+            {
+                chrome.action.setBadgeBackgroundColor({ color: badgeColor });
+                chrome.storage.sync.set({ badgeColor: badgeColor });
+            }
+        });
+
         let namazTimes = data.namazTimes || [];
         let timesInSeconds = namazTimes.map(time =>
         {
@@ -69,20 +79,6 @@ chrome.runtime.onInstalled.addListener(() =>
             }
         }, 1000);
     });
-
-    //         const timerInterval = setInterval(() =>
-    //         {
-    //             if (secondsToNextNamaz > 0)
-    //             {
-    //                 updateBadge(formattedTime);
-    //             }
-    //             else
-    //             {
-    //                 clearInterval(timerInterval);
-    //             }
-    //         }, 1000);
-    //     })
-    //     .catch(error => console.error('Error:', error));
 });
 
 // chrome.runtime.onStartup.addListener(() =>
@@ -114,6 +110,17 @@ async function getNamazTimes(cityCode)
                 resolve(matches);
             })
     });
+}
+
+function rgbaArrayToHex(colorArray)
+{
+    if (colorArray.length < 3) return null;  // Ensure at least RGB values are provided
+
+    // Extract RGB values, ignore alpha for hex conversion
+    const [r, g, b] = colorArray;
+
+    // Convert each component to a two-digit hex string and concatenate
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
 }
 
 function updateBadge(text)
