@@ -22,6 +22,7 @@ chrome.action.onClicked.addListener(() =>
     chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
 });
 
+// Start namaz timer when the extension is installed
 chrome.runtime.onInstalled.addListener(() =>
 {
     chrome.storage.sync.get(['badgeColor', 'cityCode', 'namazTimesFormatted'], storage =>
@@ -32,7 +33,7 @@ chrome.runtime.onInstalled.addListener(() =>
         chrome.action.getBadgeBackgroundColor({}, badgeColor =>
         {
             badgeColor = rgbaArrayToHex(badgeColor);
-            if (badgeColor !== storage.badgeColor)
+            if (storage.badgeColor && badgeColor !== storage.badgeColor)
             {
                 chrome.action.setBadgeBackgroundColor({ color: storage.badgeColor });
                 console.log('setBadgeBackgroundColor');
@@ -45,16 +46,29 @@ chrome.runtime.onInstalled.addListener(() =>
     });
 });
 
-// // chrome.runtime.onStartup.addListener(() =>
-// // {
-// //     // const secondsToMidnight = getSecondsToTomorrow();
-// //     // setTimeout(() =>
-// //     // {
-// //     fetch('https://namazvakitleri.diyanet.gov.tr/tr-TR/13980/rotterdam-icin-namaz-vakti')
-// //         .then(response => response.json())
-// //         .then(data => alert(data))
-// //     // }, secondsToMidnight * 1000);
-// // });
+// Start namaz timer when the extension is started
+chrome.runtime.onStartup.addListener(() =>
+{
+    chrome.storage.sync.get(['badgeColor', 'cityCode', 'namazTimesFormatted'], storage =>
+    {
+        storageBadgeColor = storage.badgeColor;
+        storageCityCode = storage.cityCode;
+
+        chrome.action.getBadgeBackgroundColor({}, badgeColor =>
+        {
+            badgeColor = rgbaArrayToHex(badgeColor);
+            if (storage.badgeColor && badgeColor !== storage.badgeColor)
+            {
+                chrome.action.setBadgeBackgroundColor({ color: storage.badgeColor });
+                console.log('setBadgeBackgroundColor');
+            }
+
+            namazTimesFormatted = storage.namazTimesFormatted || [];
+            namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
+            startInterval();
+        });
+    });
+});
 
 function rgbaArrayToHex(colorArray)
 {
