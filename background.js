@@ -1,8 +1,9 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
+const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
 let intervalId;
 let condition = false;
-let intervalMilliseconds = 1000;
-let previousTimeMinutes = getCurrentTimeMinutes();
+let intervalMilliseconds = 100;
+let previousTimeSeconds = getCurrentTimeSeconds();
 let namazTimesFormatted;
 let namazTimesSeconds;
 let storageBadgeColor;
@@ -65,6 +66,11 @@ function rgbaArrayToHex(colorArray)
 function convertFormattedTimeToSeconds(formattedTime)
 {
     const [hours, minutes] = formattedTime.split(":").map(Number);
+    if (!hours && !minutes)
+    {
+        return formattedTime;
+    }
+
     return (hours * 60 + minutes) * 60;
 }
 
@@ -82,7 +88,8 @@ async function getNamazTimes(cityCode)
             .then(response => response.text())
             .then(data =>
             {
-                const namazTimesFormatted = [...data.matchAll(namazTimeRegex)].map(match => match[1]);
+                let namazTimesFormatted = [...data.matchAll(namazTimeRegex)].map(match => match[1]);
+                namazTimesFormatted.push(data.match(nextImsakTimeRegex)[1]);
                 resolve(namazTimesFormatted);
             })
     });
@@ -124,6 +131,7 @@ function intervalTask()
         {
             namazTimesFormatted = [...await getNamazTimes(storageCityCode), currentDateString];
             namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time));
+            console.log(namazTimesSeconds);
 
             chrome.storage.sync.set({ namazTimesFormatted: namazTimesFormatted });
             console.log('setNamazTimesFormatted');
@@ -133,11 +141,21 @@ function intervalTask()
     // Get the time until the next prayer
     const currentTimeSeconds = getCurrentTimeSeconds();
     const nextNamazIndex = getNextNamazIndex(currentTimeSeconds, namazTimesSeconds);
-    const secondsToNextNamaz = namazTimesSeconds[nextNamazIndex] - currentTimeSeconds;
+    let secondsToNextNamaz;
+    if (nextNamazIndex === 6)
+    {
+        // Next namaz is the next day's imsak
+        // 24 hours in seconds - current time in seconds + imsak time in seconds
+        secondsToNextNamaz = 86400 - currentTimeSeconds + namazTimesSeconds[6];
+    }
+    else
+    {
+        secondsToNextNamaz = namazTimesSeconds[nextNamazIndex] - currentTimeSeconds;
+    }
+
     const hours = convertSecondsToHours(secondsToNextNamaz);
     const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
 
-    // Set the badge text and color
     let formattedTime;
     let color;
     if (hours > 0)
@@ -147,7 +165,14 @@ function intervalTask()
     }
     else
     {
-        formattedTime = `${minutes}:${String(secondsToNextNamaz % 60).padStart(2, '0')}`;
+        if (minutes > 0)
+        {
+            formattedTime = `${String(minutes).padStart(2, '0')}m`;
+        }
+        else
+        {
+            formattedTime = `${String(secondsToNextNamaz % 60).padStart(2, '0')}`;
+        }
         color = '#ff0000';
     }
 
@@ -167,27 +192,28 @@ function intervalTask()
     chrome.action.setBadgeText({ text: formattedTime });
     console.log('setBadgeText');
 
-    const currentTimeMinutes = getCurrentTimeMinutes();
-    if (
-        intervalMilliseconds === 1000
-        && currentTimeMinutes !== previousTimeMinutes
-        && (
-            hours > 0
-            || hours === 0 && minutes > 0
-        )
-    )
+    if (intervalMilliseconds === 100 && currentTimeSeconds != previousTimeSeconds)
     {
-        intervalMilliseconds = 60000;
-        previousTimeMinutes = currentTimeMinutes;
+        if (secondsToNextNamaz > 59) // TODO maybe 60 seconds is better?
+        {
+            // Restart with interval that is 61 seconds minus the current second so it starts at the beginning of the next minute
+            // Using 60 seconds would cause the next interval to run on, for example, 1:30:00 instead of 1:29:59 and would thus display the wrong minute
+            intervalMilliseconds = 61000 - currentTimeSeconds % 60 * 1000;
+        }
+        else
+        {
+            // Restart with interval of 1 second because the next namaz is less than 1 minute away
+            intervalMilliseconds = 1000;
+        }
+
+        console.log('intervalMilliseconds:', intervalMilliseconds);
         restartInterval();
     }
-    else if (
-        intervalMilliseconds !== 1000
-        && minutes < 0
-    )
+    else if (intervalMilliseconds > 100 && intervalMilliseconds < 60000)
     {
-        intervalMilliseconds = 1000;
-        previousTimeMinutes = currentTimeMinutes;
+        // Restart with interval of 60 seconds
+        intervalMilliseconds = 60000;
+        console.log('intervalMilliseconds:', intervalMilliseconds);
         restartInterval();
     }
 }
