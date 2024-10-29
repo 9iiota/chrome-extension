@@ -9,6 +9,13 @@ let namazTimesSeconds;
 let storageBadgeColor;
 let storageCityCode;
 
+// Used to keep the service worker alive
+chrome.alarms.create({ periodInMinutes: .49 })
+chrome.alarms.onAlarm.addListener(() =>
+{
+    console.log('Keeping service worker alive')
+});
+
 // Open popup page when the extension icon is clicked
 chrome.action.onClicked.addListener(() =>
 {
@@ -206,14 +213,12 @@ function intervalTask()
             intervalMilliseconds = 1000;
         }
 
-        console.log('intervalMilliseconds:', intervalMilliseconds);
         restartInterval();
     }
     else if (intervalMilliseconds > 100 && intervalMilliseconds < 60000)
     {
         // Restart with interval of 60 seconds
         intervalMilliseconds = 60000;
-        console.log('intervalMilliseconds:', intervalMilliseconds);
         restartInterval();
     }
 }
