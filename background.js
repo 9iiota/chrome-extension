@@ -1,13 +1,14 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
-let intervalId;
-let condition = false;
-let intervalMilliseconds = 100;
-let previousTimeSeconds = getCurrentTimeSeconds();
+
+let cityCode;
+let badgeBackgroundColor;
+let badgeTextColor;
 let namazTimesFormatted;
 let namazTimesSeconds;
-let storageBadgeColor;
-let storageCityCode;
+let intervalId;
+let intervalMilliseconds = 100;
+let previousTimeSeconds = getCurrentTimeSeconds();
 
 // Used to keep the service worker alive
 chrome.alarms.create({ periodInMinutes: .49 })
@@ -25,48 +26,28 @@ chrome.action.onClicked.addListener(() =>
 // Start namaz timer when the extension is installed
 chrome.runtime.onInstalled.addListener(() =>
 {
-    chrome.storage.sync.get(['badgeColor', 'cityCode', 'namazTimesFormatted'], storage =>
+    chrome.storage.sync.get(['cityCode', 'namazTimesFormatted'], storage =>
     {
-        storageBadgeColor = storage.badgeColor;
-        storageCityCode = storage.cityCode;
+        cityCode = storage.cityCode;
+        setBadgeData();
 
-        chrome.action.getBadgeBackgroundColor({}, badgeColor =>
-        {
-            badgeColor = rgbaArrayToHex(badgeColor);
-            if (storage.badgeColor && badgeColor !== storage.badgeColor)
-            {
-                chrome.action.setBadgeBackgroundColor({ color: storage.badgeColor });
-                console.log('setBadgeBackgroundColor');
-            }
-
-            namazTimesFormatted = storage.namazTimesFormatted || [];
-            namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
-            startInterval();
-        });
+        namazTimesFormatted = storage.namazTimesFormatted || [];
+        namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
+        startInterval();
     });
 });
 
 // Start namaz timer when the extension is started
 chrome.runtime.onStartup.addListener(() =>
 {
-    chrome.storage.sync.get(['badgeColor', 'cityCode', 'namazTimesFormatted'], storage =>
+    chrome.storage.sync.get(['cityCode', 'namazTimesFormatted'], storage =>
     {
-        storageBadgeColor = storage.badgeColor;
-        storageCityCode = storage.cityCode;
+        cityCode = storage.cityCode;
+        setBadgeData();
 
-        chrome.action.getBadgeBackgroundColor({}, badgeColor =>
-        {
-            badgeColor = rgbaArrayToHex(badgeColor);
-            if (storage.badgeColor && badgeColor !== storage.badgeColor)
-            {
-                chrome.action.setBadgeBackgroundColor({ color: storage.badgeColor });
-                console.log('setBadgeBackgroundColor');
-            }
-
-            namazTimesFormatted = storage.namazTimesFormatted || [];
-            namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
-            startInterval();
-        });
+        namazTimesFormatted = storage.namazTimesFormatted || [];
+        namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
+        startInterval();
     });
 });
 
@@ -82,6 +63,19 @@ function rgbaArrayToHex(colorArray)
 
     // Convert each component to a two-digit hex string and concatenate
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+}
+
+function setBadgeData()
+{
+    chrome.action.getBadgeBackgroundColor({}, colorArray =>
+    {
+        badgeBackgroundColor = rgbaArrayToHex(colorArray);
+    });
+
+    chrome.action.getBadgeTextColor({}, colorArray =>
+    {
+        badgeTextColor = rgbaArrayToHex(colorArray);
+    });
 }
 
 function convertFormattedTimeToSeconds(formattedTime)
@@ -150,7 +144,7 @@ function intervalTask()
     {
         (async () =>
         {
-            namazTimesFormatted = [...await getNamazTimes(storageCityCode), currentDateString];
+            namazTimesFormatted = [...await getNamazTimes(cityCode), currentDateString];
             namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time));
             console.log(namazTimesSeconds);
 
@@ -178,11 +172,13 @@ function intervalTask()
     const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
 
     let formattedTime;
-    let color;
+    let backgroundColor;
+    let textColor;
     if (hours > 0)
     {
         formattedTime = `${hours}:${String(minutes).padStart(2, '0')}`;
-        color = '#00ff00';
+        backgroundColor = '#00ff00';
+        textColor = '#000000';
     }
     else
     {
@@ -194,20 +190,29 @@ function intervalTask()
         {
             formattedTime = `${String(secondsToNextNamaz % 60).padStart(2, '0')}`;
         }
-        color = '#ff0000';
+
+        backgroundColor = '#ff0000';
+        textColor = '#ffffff';
     }
 
     // Check if the next time is sunrise
     if (nextNamazIndex === 2)
     {
-        color = '#808080';
+        backgroundColor = '#808080';
     }
 
-    if (color !== storageBadgeColor)
+    if (backgroundColor !== badgeBackgroundColor)
     {
-        chrome.action.setBadgeBackgroundColor({ color: color });
-        chrome.storage.sync.set({ badgeColor: color });
-        console.log('setBadgeBackgroundColor 2');
+        chrome.action.setBadgeBackgroundColor({ color: backgroundColor });
+        chrome.storage.sync.set({ badgeColor: backgroundColor });
+        console.log('setBadgeBackgroundColor');
+    }
+
+    if (textColor !== badgeTextColor)
+    {
+        chrome.action.setBadgeTextColor({ color: textColor });
+        chrome.storage.sync.set({ badgeTextColor: textColor });
+        console.log('setBadgeTextColor');
     }
 
     chrome.action.setBadgeText({ text: formattedTime });
