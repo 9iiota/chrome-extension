@@ -1,14 +1,29 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
 
-let cityCode;
-let badgeBackgroundColor;
-let badgeTextColor;
+let BADGE_BACKGROUND_COLOR;
+let BADGE_TEXT_COLOR;
+let CITY_CODE;
+let INTERVAL_MILLISECONDS = 1;
+
 let namazTimesFormatted;
 let namazTimesSeconds;
 let intervalId;
-let intervalMilliseconds = 100;
 let previousTimeSeconds = getCurrentTimeSeconds();
+
+let c = '#ff0000';
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
+{
+    console.log(message);
+    if (message.action === "checkboxChanged")
+    {
+        const { id, checked } = message.data;
+        console.log(`Checkbox ${id} is now ${checked ? "checked" : "unchecked"}`);
+
+        c = checked ? '#00ff00' : '#ff0000';
+        // Do something with this data
+    }
+});
 
 // Used to keep the service worker alive
 chrome.alarms.create({ periodInMinutes: .49 })
@@ -28,7 +43,7 @@ chrome.runtime.onInstalled.addListener(() =>
 {
     chrome.storage.sync.get(['cityCode', 'namazTimesFormatted'], storage =>
     {
-        cityCode = storage.cityCode;
+        CITY_CODE = storage.cityCode;
         setBadgeData();
 
         namazTimesFormatted = storage.namazTimesFormatted || [];
@@ -42,7 +57,7 @@ chrome.runtime.onStartup.addListener(() =>
 {
     chrome.storage.sync.get(['cityCode', 'namazTimesFormatted'], storage =>
     {
-        cityCode = storage.cityCode;
+        CITY_CODE = storage.cityCode;
         setBadgeData();
 
         namazTimesFormatted = storage.namazTimesFormatted || [];
@@ -69,12 +84,12 @@ function setBadgeData()
 {
     chrome.action.getBadgeBackgroundColor({}, colorArray =>
     {
-        badgeBackgroundColor = rgbaArrayToHex(colorArray);
+        BADGE_BACKGROUND_COLOR = rgbaArrayToHex(colorArray);
     });
 
     chrome.action.getBadgeTextColor({}, colorArray =>
     {
-        badgeTextColor = rgbaArrayToHex(colorArray);
+        BADGE_TEXT_COLOR = rgbaArrayToHex(colorArray);
     });
 }
 
@@ -137,6 +152,18 @@ function convertSecondsToMinutes(seconds)
     return Math.floor(seconds / 60);
 }
 
+function getCurrentTimeMilliseconds()
+{
+    const now = new Date();
+    return now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000 + now.getMilliseconds();
+}
+
+function getCurrentTimeMinutes()
+{
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+}
+
 function intervalTask()
 {
     const currentDateString = getCurrentDateString();
@@ -144,7 +171,7 @@ function intervalTask()
     {
         (async () =>
         {
-            namazTimesFormatted = [...await getNamazTimes(cityCode), currentDateString];
+            namazTimesFormatted = [...await getNamazTimes(CITY_CODE), currentDateString];
             namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time));
             console.log(namazTimesSeconds);
 
@@ -157,7 +184,7 @@ function intervalTask()
     const currentTimeSeconds = getCurrentTimeSeconds();
     const nextNamazIndex = getNextNamazIndex(currentTimeSeconds, namazTimesSeconds);
     let secondsToNextNamaz;
-    if (nextNamazIndex === 6)
+    if (nextNamazIndex === -1)
     {
         // Next namaz is the next day's imsak
         // 24 hours in seconds - current time in seconds + imsak time in seconds
@@ -168,83 +195,94 @@ function intervalTask()
         secondsToNextNamaz = namazTimesSeconds[nextNamazIndex] - currentTimeSeconds;
     }
 
-    const hours = convertSecondsToHours(secondsToNextNamaz);
-    const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
-
     let formattedTime;
-    let backgroundColor;
-    let textColor;
-    if (hours > 0)
+    let badgeBackgroundColor;
+    let badgeTextColor = '#000000';
+    if (secondsToNextNamaz >= 60)
     {
-        formattedTime = `${hours}:${String(minutes).padStart(2, '0')}`;
-        backgroundColor = '#00ff00';
-        textColor = '#000000';
-    }
-    else
-    {
-        if (minutes > 0)
+        const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
+        if (secondsToNextNamaz >= 3600)
         {
-            formattedTime = `${String(minutes).padStart(2, '0')}m`;
+            // 1 hour or more left until the next namaz
+            const hours = convertSecondsToHours(secondsToNextNamaz);
+            const paddedMinutes = String(minutes).padStart(2, '0');
+            formattedTime = `${hours}:${paddedMinutes}`;
+            badgeBackgroundColor = '#00ff00'; // Green
         }
         else
         {
-            formattedTime = `${String(secondsToNextNamaz % 60).padStart(2, '0')}`;
+            // Less than 1 hour left until the next namaz but 1 minute or more left
+            formattedTime = `${minutes}m`;
+            badgeBackgroundColor = '#ff0000'; // Red
         }
-
-        backgroundColor = '#ff0000';
-        textColor = '#ffffff';
+    }
+    else
+    {
+        // Less than 1 minute left until the next namaz
+        formattedTime = `${secondsToNextNamaz}s`;
+        badgeBackgroundColor = '#ff0000'; // Red
     }
 
     // Check if the next time is sunrise
     if (nextNamazIndex === 2)
     {
-        backgroundColor = '#808080';
+        badgeBackgroundColor = '#808080';
+        badgeTextColor = '#ffffff';
     }
 
-    if (backgroundColor !== badgeBackgroundColor)
+    if (badgeBackgroundColor !== BADGE_BACKGROUND_COLOR)
     {
-        chrome.action.setBadgeBackgroundColor({ color: backgroundColor });
-        chrome.storage.sync.set({ badgeColor: backgroundColor });
+        chrome.action.setBadgeBackgroundColor({ color: badgeBackgroundColor });
+        chrome.storage.sync.set({ badgeColor: badgeBackgroundColor });
         console.log('setBadgeBackgroundColor');
     }
 
-    if (textColor !== badgeTextColor)
+    if (badgeTextColor !== BADGE_TEXT_COLOR)
     {
-        chrome.action.setBadgeTextColor({ color: textColor });
-        chrome.storage.sync.set({ badgeTextColor: textColor });
+        chrome.action.setBadgeTextColor({ color: badgeTextColor });
+        chrome.storage.sync.set({ badgeTextColor: badgeTextColor });
         console.log('setBadgeTextColor');
     }
 
     chrome.action.setBadgeText({ text: formattedTime });
     console.log('setBadgeText');
 
-    if (intervalMilliseconds === 100 && currentTimeSeconds != previousTimeSeconds)
+    const currentTimeMilliseconds = getCurrentTimeMilliseconds();
+    if (INTERVAL_MILLISECONDS === 1)
     {
-        if (secondsToNextNamaz > 59) // TODO maybe 60 seconds is better?
-        {
-            // Restart with interval that is 61 seconds minus the current second so it starts at the beginning of the next minute
-            // Using 60 seconds would cause the next interval to run on, for example, 1:30:00 instead of 1:29:59 and would thus display the wrong minute
-            intervalMilliseconds = 61000 - currentTimeSeconds % 60 * 1000;
-        }
-        else
-        {
-            // Restart with interval of 1 second because the next namaz is less than 1 minute away
-            intervalMilliseconds = 1000;
-        }
-
+        // Only runs once at the startup of the extension
+        // Restarts at the start of the next second
+        const nextSecond = currentTimeSeconds + 1;
+        const nextSecondMilliseconds = nextSecond * 1000;
+        INTERVAL_MILLISECONDS = nextSecondMilliseconds - currentTimeMilliseconds;
+        restartInterval(); // 130ms
+    }
+    else if (INTERVAL_MILLISECONDS !== 1000 && secondsToNextNamaz <= 59)
+    {
+        // Restart in 1 second when the next namaz is less than 1 minute away
+        INTERVAL_MILLISECONDS = 1000;
         restartInterval();
     }
-    else if (intervalMilliseconds > 100 && intervalMilliseconds < 60000)
+    else if (INTERVAL_MILLISECONDS < 1000 && secondsToNextNamaz >= 60)
     {
-        // Restart with interval of 60 seconds
-        intervalMilliseconds = 60000;
+        // Restart at the next :59 second when the next namaz is more than 1 minute away
+        const currentTimeMinutes = getCurrentTimeMinutes();
+        const nextMinute = currentTimeMinutes + 1;
+        const nextMinuteMilliseconds = nextMinute * 60000;
+        INTERVAL_MILLISECONDS = nextMinuteMilliseconds - currentTimeMilliseconds + 1000;
+        restartInterval(); // 43000ms
+    }
+    else if (INTERVAL_MILLISECONDS !== 60000 && secondsToNextNamaz >= 60)
+    {
+        // Restart in 1 minute when the next namaz is more than 1 minute away
+        INTERVAL_MILLISECONDS = 60000;
         restartInterval();
     }
 }
 
 function startInterval()
 {
-    intervalId = setInterval(intervalTask, intervalMilliseconds);
+    intervalId = setInterval(intervalTask, INTERVAL_MILLISECONDS);
 }
 
 function restartInterval()
