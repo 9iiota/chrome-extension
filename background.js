@@ -1,6 +1,8 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
 
+let CURRENT_NAMAZ_PRAYED = false;
+
 let BADGE_BACKGROUND_COLOR;
 let BADGE_TEXT_COLOR;
 let CITY_CODE;
@@ -11,22 +13,24 @@ let namazTimesSeconds;
 let intervalId;
 let previousTimeSeconds = getCurrentTimeSeconds();
 
-let c = '#ff0000';
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
 {
-    console.log(message);
     if (message.action === "checkboxChanged")
     {
-        const { id, checked } = message.data;
-        console.log(`Checkbox ${id} is now ${checked ? "checked" : "unchecked"}`);
-
-        c = checked ? '#00ff00' : '#ff0000';
-        // Do something with this data
+        const { index: checkboxIndex, checked } = message.data;
+        console.log(`Checkbox ${checkboxIndex} changed to ${checked}`);
+        const currentTimeSeconds = getCurrentTimeSeconds();
+        const currentNamazIndex = getNextNamazIndex(currentTimeSeconds, namazTimesSeconds) - 1;
+        if (checkboxIndex === currentNamazIndex)
+        {
+            CURRENT_NAMAZ_PRAYED = checked;
+            intervalTask();
+        }
     }
 });
 
 // Used to keep the service worker alive
-chrome.alarms.create({ periodInMinutes: .49 })
+chrome.alarms.create({ periodInMinutes: .4 })
 chrome.alarms.onAlarm.addListener(() =>
 {
     console.log('Keeping service worker alive')
@@ -144,12 +148,14 @@ function getNextNamazIndex(currentTimeSeconds, namazTimeSeconds)
 
 function convertSecondsToHours(seconds)
 {
+    // Round down so 3599 seconds (59:59) returns 0
     return Math.floor(seconds / 3600);
 }
 
 function convertSecondsToMinutes(seconds)
 {
-    return Math.floor(seconds / 60);
+    // Round up to the nearest minute so, for example, 179 seconds (2:59) returns 3
+    return Math.ceil(seconds / 60);
 }
 
 function getCurrentTimeMilliseconds()
@@ -196,8 +202,8 @@ function intervalTask()
     }
 
     let formattedTime;
-    let badgeBackgroundColor;
-    let badgeTextColor = '#000000';
+    let badgeBackgroundColor = '#ff0000'; // Red
+    let badgeTextColor = '#000000'; // Black
     if (secondsToNextNamaz >= 60)
     {
         const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
@@ -207,40 +213,47 @@ function intervalTask()
             const hours = convertSecondsToHours(secondsToNextNamaz);
             const paddedMinutes = String(minutes).padStart(2, '0');
             formattedTime = `${hours}:${paddedMinutes}`;
-            badgeBackgroundColor = '#00ff00'; // Green
+
+            if (!CURRENT_NAMAZ_PRAYED)
+            {
+                badgeBackgroundColor = '#00ffff'; // Cyan
+            }
         }
         else
         {
             // Less than 1 hour left until the next namaz but 1 minute or more left
             formattedTime = `${minutes}m`;
-            badgeBackgroundColor = '#ff0000'; // Red
         }
     }
     else
     {
         // Less than 1 minute left until the next namaz
         formattedTime = `${secondsToNextNamaz}s`;
-        badgeBackgroundColor = '#ff0000'; // Red
     }
 
-    // Check if the next time is sunrise
     if (nextNamazIndex === 2)
     {
         badgeBackgroundColor = '#808080';
         badgeTextColor = '#ffffff';
     }
+    else if (CURRENT_NAMAZ_PRAYED)
+    {
+        badgeBackgroundColor = '#00ff00'; // Green
+    }
+
+    // Check if the next time is sunrise
 
     if (badgeBackgroundColor !== BADGE_BACKGROUND_COLOR)
     {
         chrome.action.setBadgeBackgroundColor({ color: badgeBackgroundColor });
-        chrome.storage.sync.set({ badgeColor: badgeBackgroundColor });
+        BADGE_BACKGROUND_COLOR = badgeBackgroundColor;
         console.log('setBadgeBackgroundColor');
     }
 
     if (badgeTextColor !== BADGE_TEXT_COLOR)
     {
         chrome.action.setBadgeTextColor({ color: badgeTextColor });
-        chrome.storage.sync.set({ badgeTextColor: badgeTextColor });
+        BADGE_TEXT_COLOR = badgeTextColor
         console.log('setBadgeTextColor');
     }
 
@@ -255,7 +268,7 @@ function intervalTask()
         const nextSecond = currentTimeSeconds + 1;
         const nextSecondMilliseconds = nextSecond * 1000;
         INTERVAL_MILLISECONDS = nextSecondMilliseconds - currentTimeMilliseconds;
-        restartInterval(); // 130ms
+        restartInterval();
     }
     else if (INTERVAL_MILLISECONDS !== 1000 && secondsToNextNamaz <= 59)
     {
@@ -270,7 +283,7 @@ function intervalTask()
         const nextMinute = currentTimeMinutes + 1;
         const nextMinuteMilliseconds = nextMinute * 60000;
         INTERVAL_MILLISECONDS = nextMinuteMilliseconds - currentTimeMilliseconds + 1000;
-        restartInterval(); // 43000ms
+        restartInterval();
     }
     else if (INTERVAL_MILLISECONDS !== 60000 && secondsToNextNamaz >= 60)
     {
@@ -282,6 +295,7 @@ function intervalTask()
 
 function startInterval()
 {
+    console.log(`startInterval: ${INTERVAL_MILLISECONDS}`);
     intervalId = setInterval(intervalTask, INTERVAL_MILLISECONDS);
 }
 

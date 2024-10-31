@@ -8,10 +8,13 @@
 		"activeTab",
 		"scripting",
 		"storage",
-		"tabs"
+		"tabs",
+		"cookies",
+		"alarms"
 	],
 	"host_permissions": [
-		"*://*.namazvakitleri.diyanet.gov.tr/*"
+		"*://*.namazvakitleri.diyanet.gov.tr/*",
+		"*://*.tiktok.com/*"
 	],
 	"action": {
 		"default_popup": "popup.html",
@@ -26,17 +29,17 @@
 		{
 			"matches": ["*://*.youtube.com/watch*"],
 			"css": ["styles.css"],
-			"js": ["YouTube/content.js"]
+			"js": ["youTube/content.js"]
 		},
 		{
             "matches": ["*://*.tiktok.com/*"],
             "css": ["styles.css"],
-            "js": ["TikTok/content.js"]
+            "js": ["tiktok/content.js"]
         },
 		{
             "matches": ["*://*.twitch.tv/*"],
             "css": ["styles.css"],
-            "js": ["Twitch/content.js"]
+            "js": ["twitch/content.js"]
         }
 	],
 	"web_accessible_resources": [
