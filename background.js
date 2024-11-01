@@ -1,6 +1,7 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
 
+let CURRENT_NAMAZ_INDEX;
 let CURRENT_NAMAZ_PRAYED = false;
 
 let BADGE_BACKGROUND_COLOR;
@@ -17,15 +18,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
 {
     if (message.action === "checkboxChanged")
     {
-        const { index: checkboxIndex, checked } = message.data;
-        console.log(`Checkbox ${checkboxIndex} changed to ${checked}`);
-        const currentTimeSeconds = getCurrentTimeSeconds();
-        const currentNamazIndex = getNextNamazIndex(currentTimeSeconds, namazTimesSeconds) - 1;
-        if (checkboxIndex === currentNamazIndex)
-        {
-            CURRENT_NAMAZ_PRAYED = checked;
-            intervalTask();
-        }
+        const { index, isChecked } = message.data;
+        namazCheckboxChanged(index, isChecked);
     }
 });
 
@@ -45,13 +39,19 @@ chrome.action.onClicked.addListener(() =>
 // Start namaz timer when the extension is installed
 chrome.runtime.onInstalled.addListener(() =>
 {
-    chrome.storage.sync.get(['cityCode', 'namazTimesFormatted'], storage =>
+    chrome.storage.sync.get(['cityCode', 'namazPrayed', 'namazTimesFormatted'], storage =>
     {
         CITY_CODE = storage.cityCode;
         setBadgeData();
 
         namazTimesFormatted = storage.namazTimesFormatted || [];
         namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
+
+        const currentTimeSeconds = getCurrentTimeSeconds();
+        const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
+        CURRENT_NAMAZ_INDEX = currentNamazIndex;
+        CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex] || false;
+
         startInterval();
     });
 });
@@ -59,13 +59,19 @@ chrome.runtime.onInstalled.addListener(() =>
 // Start namaz timer when the extension is started
 chrome.runtime.onStartup.addListener(() =>
 {
-    chrome.storage.sync.get(['cityCode', 'namazTimesFormatted'], storage =>
+    chrome.storage.sync.get(['cityCode', 'namazPrayed', 'namazTimesFormatted'], storage =>
     {
         CITY_CODE = storage.cityCode;
         setBadgeData();
 
         namazTimesFormatted = storage.namazTimesFormatted || [];
         namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
+
+        const currentTimeSeconds = getCurrentTimeSeconds();
+        const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
+        CURRENT_NAMAZ_INDEX = currentNamazIndex;
+        CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex] || false;
+
         startInterval();
     });
 });
@@ -141,6 +147,24 @@ function getCurrentTimeSeconds()
     return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
 }
 
+function getCurrentNamazIndex(currentTimeSeconds, namazTimeSeconds)
+{
+    // Filter to get only times less than currentTimeSeconds
+    const validTimes = namazTimeSeconds.filter(time => time < currentTimeSeconds);
+
+    // If there are no valid times, return -1
+    if (validTimes.length === 0)
+    {
+        return -1;
+    }
+
+    // Find the closest time by getting the max of the filtered times
+    const closestTime = Math.max(...validTimes);
+
+    // Return the index of this closest time
+    return namazTimeSeconds.indexOf(closestTime);
+}
+
 function getNextNamazIndex(currentTimeSeconds, namazTimeSeconds)
 {
     return namazTimeSeconds.findIndex(time => time > currentTimeSeconds);
@@ -186,6 +210,11 @@ function intervalTask()
         })();
     }
 
+    // if (namazTimesFormatted.at(-1) !== currentDateString)
+    // {
+
+    // }
+
     // Get the time until the next prayer
     const currentTimeSeconds = getCurrentTimeSeconds();
     const nextNamazIndex = getNextNamazIndex(currentTimeSeconds, namazTimesSeconds);
@@ -199,6 +228,13 @@ function intervalTask()
     else
     {
         secondsToNextNamaz = namazTimesSeconds[nextNamazIndex] - currentTimeSeconds;
+    }
+
+    const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
+    if (currentNamazIndex !== CURRENT_NAMAZ_INDEX)
+    {
+        CURRENT_NAMAZ_INDEX = currentNamazIndex;
+        CURRENT_NAMAZ_PRAYED = false
     }
 
     let formattedTime;
@@ -303,4 +339,15 @@ function restartInterval()
 {
     clearInterval(intervalId);
     startInterval();
+}
+
+function namazCheckboxChanged(index, isChecked)
+{
+    const currentTimeSeconds = getCurrentTimeSeconds();
+    const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
+    if (index === currentNamazIndex)
+    {
+        CURRENT_NAMAZ_PRAYED = isChecked;
+        intervalTask();
+    }
 }
