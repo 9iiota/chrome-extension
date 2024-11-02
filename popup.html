@@ -8,26 +8,131 @@
 </head>
 
 <body class="popup-body">
-    <!-- <h1 class="popup-title">Extension Settings</h1> -->
     <div class="tab">
-        <button id="youtube-button" class="tablinks">YouTube</button>
-        <button id="tiktok-button" class="tablinks">TikTok</button>
-        <button id="tiktok-button" class="tablinks">Twitch</button>
-        <button id="tiktok-button" class="tablinks">Namaz</button>
+        <button id="tiktok-button" class="tabButton">Namaz</button>
+        <button id="tiktok-button" class="tabButton">TikTok</button>
+        <button id="tiktok-button" class="tabButton">Twitch</button>
+        <button id="youtube-button" class="tabButton">YouTube</button>
     </div>
-    <div id="YouTube" class="tabcontent">
-        <div class="enableSetQualityContainer">
-            <label>Automatically set highest quality:</label>
-            <input type="checkbox" id="enableSetQuality">
+    <div id="Namaz" class="tabContent">
+        <div>
+            <label>City code:</label>
+            <input type="text" id="cityCode">
         </div>
-        <div class="onSetQualityEnabled">
+        <div>
+            <label>Namaz Times</label>
+            <div id="namazTimesList">
+            </div>
+        </div>
+    </div>
+    <div id="TikTok" class="tabContent">
+        <div>
+            <div class="checkbox-wrapper">
+                <input class="inp-cbx" id="playTiktoksInBackground" type="checkbox" />
+                <label class="cbx" for="playTiktoksInBackground">
+                    <span>
+                        <svg width="12px" height="10px">
+                            <use xlink:href="#check"></use>
+                        </svg>
+                    </span>
+                    <span>Continue playing in background</span>
+                </label>
+                <svg class="inline-svg">
+                    <symbol id="check" viewbox="0 0 12 10">
+                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                    </symbol>
+                </svg>
+            </div>
+
+            <!-- <label>Continue playing in background:</label>
+                    <input type="checkbox" id="playTiktoksInBackground"> -->
+        </div>
+        <div id="tiktokSessions">
+        </div>
+        <div>
+            <label>Save session ID:</label>
+            <input type="text" id="tiktokSessionIdName">
+            <button id="saveTiktokSessionId">Save</button>
+        </div>
+        <div>
+            <label>Import session ID:</label>
+            <button id="importTiktokSessionId">Import</button>
+        </div>
+        <div>
+            <label>Clear sessions:</label>
+            <button id="clearTiktokSessions">Clear</button>
+        </div>
+    </div>
+    <div id="Twitch" class="tabContent">
+        <div>
+            <div class="checkbox-wrapper">
+                <input class="inp-cbx" id="enableTwitchTheatreMode" type="checkbox" />
+                <label class="cbx" for="enableTwitchTheatreMode">
+                    <span>
+                        <svg width="12px" height="10px">
+                            <use xlink:href="#check"></use>
+                        </svg>
+                    </span>
+                    <span>Automatically enter theatre mode</span>
+                </label>
+                <svg class="inline-svg">
+                    <symbol id="check" viewbox="0 0 12 10">
+                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                    </symbol>
+                </svg>
+            </div>
+
+            <!-- <label>Automatically enter theatre mode:</label>
+                        <input type="checkbox" id="enableTwitchTheatreMode"> -->
+        </div>
+    </div>
+    <div id="YouTube" class="tabContent">
+        <div class="enableSetQualityContainer">
+            <div class="checkbox-wrapper">
+                <input class="inp-cbx" id="enableYoutubeSetQuality" type="checkbox" />
+                <label class="cbx" for="enableYoutubeSetQuality">
+                    <span>
+                        <svg width="12px" height="10px">
+                            <use xlink:href="#check"></use>
+                        </svg>
+                    </span>
+                    <span>Automatically set highest quality</span>
+                </label>
+                <svg class="inline-svg">
+                    <symbol id="check" viewbox="0 0 12 10">
+                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                    </symbol>
+                </svg>
+            </div>
+
+            <!-- <label>Automatically set highest quality:</label>
+            <input type="checkbox" id="enableYoutubeSetQuality"> -->
+        </div>
+        <div id="youtubeQualityContainer">
             <div>
-                <label>Allow premium quality:</label>
-                <input type="checkbox" id="allowPremiumQuality">
+                <div class="checkbox-wrapper">
+                    <input class="inp-cbx" id="allowYoutubePremiumQuality" type="checkbox" />
+                    <label class="cbx" for="allowYoutubePremiumQuality">
+                        <span>
+                            <svg width="12px" height="10px">
+                                <use xlink:href="#check"></use>
+                            </svg>
+                        </span>
+                        <span>Allow premium quality</span>
+                    </label>
+                    <svg class="inline-svg">
+                        <symbol id="check" viewbox="0 0 12 10">
+                            <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                        </symbol>
+                    </svg>
+                </div>
+
+                <!-- <label>Allow premium quality:</label>
+                <input type="checkbox" id="allowYoutubePremiumQuality"> -->
             </div>
             <div>
                 <label>Highest preferred quality:</label>
-                <select id="quality">
+                <select id="youtubeMaxQuality">
                     <option value="4320p">4320p</option>
                     <option value="2160p">2160p</option>
                     <option value="1440p">1440p</option>
@@ -41,24 +146,8 @@
             </div>
         </div>
     </div>
-    <div id="TikTok" class="tabcontent">
-        <div>
-            <label>Continue playing in background:</label>
-            <input type="checkbox" id="continuePlaying">
-        </div>
-    </div>
-    <div id="Twitch" class="tabcontent">
-        <div>
-            <label>Automatically enter theatre mode:</label>
-            <input type="checkbox" id="enableTheatreMode">
-        </div>
-    </div>
-    <div id="Namaz" class="tabcontent">
-        <div>
-            <label>City code:</label>
-            <input type="text" id="cityCode">
-        </div>
-    </div>
+
+
 
     <script src="popup.js">
     </script>

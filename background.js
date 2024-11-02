@@ -149,19 +149,12 @@ function getCurrentTimeSeconds()
 
 function getCurrentNamazIndex(currentTimeSeconds, namazTimeSeconds)
 {
-    // Filter to get only times less than currentTimeSeconds
-    const validTimes = namazTimeSeconds.filter(time => time < currentTimeSeconds);
-
-    // If there are no valid times, return -1
-    if (validTimes.length === 0)
-    {
-        return -1;
-    }
+    // Remove the last two elements (nxet day's imsak and current date) and filter out the times that have already passed
+    const validTimes = namazTimeSeconds.slice(0, -2).filter(time => time < currentTimeSeconds);
 
     // Find the closest time by getting the max of the filtered times
     const closestTime = Math.max(...validTimes);
 
-    // Return the index of this closest time
     return namazTimeSeconds.indexOf(closestTime);
 }
 
@@ -240,26 +233,24 @@ function intervalTask()
     let formattedTime;
     let badgeBackgroundColor = '#ff0000'; // Red
     let badgeTextColor = '#000000'; // Black
-    if (secondsToNextNamaz >= 60)
+    if (secondsToNextNamaz >= 3600)
     {
+        // 1 hour or more left until the next namaz
+        const hours = convertSecondsToHours(secondsToNextNamaz);
         const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
-        if (secondsToNextNamaz >= 3600)
-        {
-            // 1 hour or more left until the next namaz
-            const hours = convertSecondsToHours(secondsToNextNamaz);
-            const paddedMinutes = String(minutes).padStart(2, '0');
-            formattedTime = `${hours}:${paddedMinutes}`;
+        const paddedMinutes = String(minutes).padStart(2, '0');
+        formattedTime = `${hours}:${paddedMinutes}`;
 
-            if (!CURRENT_NAMAZ_PRAYED)
-            {
-                badgeBackgroundColor = '#00ffff'; // Cyan
-            }
-        }
-        else
+        if (!CURRENT_NAMAZ_PRAYED)
         {
-            // Less than 1 hour left until the next namaz but 1 minute or more left
-            formattedTime = `${minutes}m`;
+            badgeBackgroundColor = '#00ffff'; // Cyan
         }
+    }
+    else if (secondsToNextNamaz >= 60)
+    {
+        // Less than 1 hour left until the next namaz but 1 minute or more left
+        const minutes = convertSecondsToMinutes(secondsToNextNamaz);
+        formattedTime = `${minutes}m`;
     }
     else
     {
@@ -293,6 +284,8 @@ function intervalTask()
         console.log('setBadgeTextColor');
     }
 
+    // log the current date and time iso string
+    console.log(new Date().toISOString());
     chrome.action.setBadgeText({ text: formattedTime });
     console.log('setBadgeText');
 

@@ -18,10 +18,10 @@ const performanceObserver = new PerformanceObserver((list) =>
     });
 });
 
-chrome.storage.sync.get(['enableTheatreMode'], function (data)
+chrome.storage.sync.get(['enableTwitchTheatreMode'], function (data)
 {
-    isTheatreModeEnabled = data.enableTheatreMode;
-    if (!data.enableTheatreMode)
+    isTheatreModeEnabled = data.enableTwitchTheatreMode;
+    if (!data.enableTwitchTheatreMode)
     {
         return;
     }

@@ -14,20 +14,20 @@ let smallIntervalPlayEvent = null;
 let bigIntervalPlayEvent = null;
 let loopSliderBackground = null;
 
-chrome.storage.sync.get(['enableSetQuality', 'allowPremiumQuality', 'maxQuality'], function (data)
+chrome.storage.sync.get(['enableYoutubeSetQuality', 'allowYoutubePremiumQuality', 'youtubeMaxQuality'], function (data)
 {
-    if (!data.enableSetQuality)
+    if (!data.enableYoutubeSetQuality)
     {
         return;
     }
 
-    if (data.allowPremiumQuality)
+    if (data.allowYoutubePremiumQuality)
     {
         excludedQualityOptions = excludedQualityOptions.filter(option => option !== 'Premium');
     }
 
     // Wait for settings panel
-    const onSettingsFound = [[clickHighestQuality, data.maxQuality], [focusVideoPlayer, null]];
+    const onSettingsFound = [[clickHighestQuality, data.youtubeMaxQuality], [focusVideoPlayer, null]];
     waitForElement('.ytp-panel', onSettingsFound);
 
     console.log(data);
@@ -87,11 +87,11 @@ function convertQualityToInt(quality)
     return parseInt(quality.split('p')[0], 10);
 }
 
-function clickHighestQuality(maxQuality)
+function clickHighestQuality(youtubeMaxQuality)
 {
     openQualityMenu();
 
-    const maxQualityInt = convertQualityToInt(maxQuality);
+    const maxQualityInt = convertQualityToInt(youtubeMaxQuality);
     const qualityOptions = document.querySelectorAll('.ytp-panel.ytp-quality-menu .ytp-panel-menu .ytp-menuitem');
     for (const option of qualityOptions)
     {

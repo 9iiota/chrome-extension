@@ -1,9 +1,9 @@
 let video;
 let observer;
 
-chrome.storage.sync.get(['continuePlaying'], function (data)
+chrome.storage.sync.get(['playTiktoksInBackground'], function (data)
 {
-    if (!data.continuePlaying)
+    if (!data.playTiktoksInBackground)
     {
         return;
     }
@@ -13,11 +13,11 @@ chrome.storage.sync.get(['continuePlaying'], function (data)
 
 chrome.storage.onChanged.addListener(function (changes, namespace)
 {
-    if (changes.continuePlaying)
+    if (changes.playTiktoksInBackground)
     {
-        const continuePlaying = changes.continuePlaying.newValue;
+        const playTiktoksInBackground = changes.playTiktoksInBackground.newValue;
 
-        if (!continuePlaying)
+        if (!playTiktoksInBackground)
         {
             observer.disconnect(); // Disconnect the observer if unchecked
             document.removeEventListener('visibilitychange', onVisibilityChange);
