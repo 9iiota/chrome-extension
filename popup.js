@@ -181,6 +181,29 @@ document.addEventListener('DOMContentLoaded', function ()
         {
             onYoutubeSetQualitySwitch();
         });
+
+        // Set the allow YouTube premium quality checkbox
+        const allowYoutubePremiumQuality = storage.allowYoutubePremiumQuality || false;
+        document.getElementById('allowYoutubePremiumQuality').checked = allowYoutubePremiumQuality;
+
+        // Add event listener to the allow YouTube premium quality checkbox to save the setting to storage
+        document.getElementById('allowYoutubePremiumQuality').addEventListener('change', function ()
+        {
+            const allowYoutubePremiumQuality = document.getElementById('allowYoutubePremiumQuality').checked;
+            chrome.storage.sync.set({ allowYoutubePremiumQuality: allowYoutubePremiumQuality });
+        });
+
+        // Set the YouTube max quality select
+        const youtubeMaxQuality = storage.youtubeMaxQuality || '1080p';
+        document.getElementById('youtubeMaxQuality').value = youtubeMaxQuality;
+
+        // Add event listener to the YouTube max quality select to save the selected quality to storage
+        document.getElementById('youtubeMaxQuality').addEventListener('change', function ()
+        {
+            const selectedQuality = document.getElementById('youtubeMaxQuality').value;
+            chrome.storage.sync.set({ youtubeMaxQuality: selectedQuality });
+            console.log(selectedQuality);
+        });
     });
 });
 
@@ -347,31 +370,6 @@ function onYoutubeSetQualitySwitch()
     {
         // Display the quality settings container
         youtubeQualityContainer.style.display = 'block';
-
-        chrome.storage.sync.get(['allowYoutubePremiumQuality', 'youtubeMaxQuality'], function (storage)
-        {
-            // Set the allow YouTube premium quality checkbox
-            const allowYoutubePremiumQuality = storage.allowYoutubePremiumQuality || false;
-            document.getElementById('allowYoutubePremiumQuality').checked = allowYoutubePremiumQuality;
-
-            // Add event listener to the quality select to save the selected quality to storage
-            document.getElementById('youtubeMaxQuality').addEventListener('change', function ()
-            {
-                const selectedQuality = document.getElementById('youtubeMaxQuality').value;
-                chrome.storage.sync.set({ youtubeMaxQuality: selectedQuality });
-            });
-
-            // Set the YouTube max quality select
-            const youtubeMaxQuality = storage.youtubeMaxQuality || '1080p';
-            document.getElementById('youtubeMaxQuality').value = youtubeMaxQuality;
-
-            // Add event listener to the allow YouTube premium quality checkbox to save the setting to storage
-            document.getElementById('allowYoutubePremiumQuality').addEventListener('change', function ()
-            {
-                const allowYoutubePremiumQuality = document.getElementById('allowYoutubePremiumQuality').checked;
-                chrome.storage.sync.set({ allowYoutubePremiumQuality: allowYoutubePremiumQuality });
-            });
-        });
     }
     else
     {

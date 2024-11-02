@@ -29,7 +29,7 @@
 		{
 			"matches": ["*://*.youtube.com/watch*"],
 			"css": ["styles.css"],
-			"js": ["youTube/content.js"]
+			"js": ["youtube/content.js"]
 		},
 		{
             "matches": ["*://*.tiktok.com/*"],
