@@ -1,6 +1,8 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
 
+let tiktokCookie = null;
+
 let CURRENT_NAMAZ_INDEX;
 let CURRENT_NAMAZ_PRAYED = false;
 
@@ -20,6 +22,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
     {
         const { index, isChecked } = message.data;
         namazCheckboxChanged(index, isChecked);
+    }
+    else if (message.action === "newDay")
+    {
+        newDay();
+    }
+    else if (message.action === "setCookie")
+    {
+        tiktokCookie = message.data;
+    }
+    else if (message.action === "removeCookie")
+    {
+        tiktokCookie = null;
     }
 });
 
@@ -50,7 +64,16 @@ chrome.runtime.onInstalled.addListener(() =>
         const currentTimeSeconds = getCurrentTimeSeconds();
         const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
         CURRENT_NAMAZ_INDEX = currentNamazIndex;
-        CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex] || false;
+
+        if (storage.namazPrayed)
+        {
+            CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex];
+        }
+        else
+        {
+            CURRENT_NAMAZ_PRAYED = false;
+            chrome.storage.sync.set({ namazPrayed: Array(namazTimesFormatted.length).fill(false) });
+        }
 
         startInterval();
     });
@@ -343,4 +366,10 @@ function namazCheckboxChanged(index, isChecked)
         CURRENT_NAMAZ_PRAYED = isChecked;
         intervalTask();
     }
+}
+
+function newDay()
+{
+    CURRENT_NAMAZ_PRAYED = false;
+    intervalTask();
 }

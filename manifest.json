@@ -6,11 +6,11 @@
 	"options_page": "popup.html",
 	"permissions": [
 		"activeTab",
+		"alarms",
+		"cookies",
 		"scripting",
 		"storage",
-		"tabs",
-		"cookies",
-		"alarms"
+		"tabs"
 	],
 	"host_permissions": [
 		"*://*.namazvakitleri.diyanet.gov.tr/*",

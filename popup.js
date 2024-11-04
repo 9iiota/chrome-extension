@@ -1,17 +1,20 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 
+let tiktokCookie = null;
+
 // On popup open
 chrome.storage.sync.get("lastPopupOpenDate", (storage) =>
 {
     const currentDateString = getCurrentDateString();
     if (storage.lastPopupOpenDate && storage.lastPopupOpenDate !== currentDateString)
     {
-        // If the last date the popup was opened is different from the current date, reset the namazPrayed array
+        // If new day, reset the namazPrayed array and send a message to the background script to rerun the interval task
+        chrome.runtime.sendMessage({ action: "newDay" });
         chrome.storage.sync.set({ namazPrayed: [false, false, false, false, false, false] });
     }
     else
     {
-        // Log the current date to local storage
+        // Log the current date to storage
         chrome.storage.sync.set({ lastPopupOpenDate: currentDateString });
     }
 });
@@ -35,6 +38,20 @@ document.addEventListener('DOMContentLoaded', function ()
     ], function (storage)
     {
         openActiveTab(storage.activeTab);
+
+        // set display width
+        const tabContentElements = document.getElementsByClassName("tabContent");
+        for (let i = 0; i < tabContentElements.length; i++)
+        {
+            const originalDisplay = tabContentElements[i].style.display;
+
+            tabContentElements[i].style.display = "block";
+
+            const width = tabContentElements[i].offsetWidth;
+            console.log(width);
+
+            tabContentElements[i].style.display = originalDisplay;
+        }
 
         // Namaz
         // Set the city code
@@ -65,91 +82,67 @@ document.addEventListener('DOMContentLoaded', function ()
         const playTiktoksInBackground = storage.playTiktoksInBackground || false;
         document.getElementById('playTiktoksInBackground').checked = playTiktoksInBackground;
 
-        // TODO Display TikTok sessions
+        // Display TikTok sessions
+        const tiktokSessionsContainer = document.getElementById('tiktokSessions');
         const tiktokSessions = storage.tiktokSessions || [];
-        displayTiktokSessions(tiktokSessions);
+        displaySessions(tiktokSessionsContainer, tiktokSessions);
 
         // TODO Save tiktok session ID
-        document.getElementById('saveTiktokSessionId').addEventListener('click', (event) =>
+        document.getElementById('saveTiktokSession').addEventListener('click', (event) =>
         {
-            const name = document.getElementById('tiktokSessionIdName').value;
-
+            const name = document.getElementById('tiktokSessionName').value;
             if (!name)
             {
                 alert('Please enter a name for the session ID');
                 return;
             }
 
-            chrome.storage.sync.get(['tiktokSessions'], function (data)
+            chrome.storage.sync.get(['tiktokSessions'], function (storage)
             {
-                const tiktokSessions = data.tiktokSessions || [];
-
-                (async () =>
+                const tiktokSessions = storage.tiktokSessions || [];
+                getBaseUrl((baseUrl) =>
                 {
-                    const currentTabUrl = await getCurrentTabUrl();
-                    const sessionCookie = await getCookie(currentTabUrl, 'sessionid');
-
-                    delete sessionCookie.hostOnly;
-                    delete sessionCookie.session;
-                    sessionCookie.url = currentTabUrl;
-
-                    const session = [name, sessionCookie];
-                    let exists = false;
-                    for (let i = 0; i < tiktokSessions.length; i++)
+                    getCookie(baseUrl, (cookie) =>
                     {
-                        if (tiktokSessions[i][0] === name)
+                        // Delete unnecessary properties
+                        delete cookie.hostOnly;
+                        delete cookie.session;
+
+                        cookie.url = baseUrl;
+
+                        console.log(cookie);
+
+                        // Check if session entry exists and update it
+                        const entry = [name, cookie];
+                        let exists = false;
+                        for (let i = 0; i < tiktokSessions.length; i++)
                         {
-                            tiktokSessions[i] = session;
-                            exists = true;
-                            return;
+                            if (name === tiktokSessions[i][0])
+                            {
+                                tiktokSessions[i] = entry;
+                                exists = true;
+                                return;
+                            }
                         }
-                    }
 
-                    if (!exists)
-                    {
-                        tiktokSessions.push(session);
-                    }
+                        if (!exists)
+                        {
+                            tiktokSessions.push(entry);
+                        }
 
-                    chrome.storage.sync.set({ tiktokSessions: tiktokSessions });
+                        chrome.storage.sync.set({ tiktokSessions: tiktokSessions });
 
-                    displayTiktokSessions(tiktokSessions);
-                })();
+                        displaySessions(tiktokSessionsContainer, tiktokSessions);
+                    });
+                });
             });
         });
 
-        // TODO Clear TikTok sessions
-        document.getElementById('clearTiktokSessions').addEventListener('click', (event) =>
+        // Clear TikTok sessions
+        document.getElementById('clearTiktokSessions').addEventListener('click', () =>
         {
-            chrome.storage.sync.set({ tiktokSessions: [] });
-            displayTiktokSessions([]);
-        });
-
-        // TODO Import tiktok session ID
-        document.getElementById('importTiktokSessionId').addEventListener('click', (event) =>
-        {
-            (async () =>
-            {
-                const currentTabUrl = await getCurrentTabUrl();
-
-                chrome.cookies.remove({ url: currentTabUrl, name: 'sessionid' });
-
-                const d = convertUnixToDateTime(1745654483.327404);
-
-                chrome.cookies.set({
-                    domain: ".tiktok.com",
-                    expirationDate: d.getTime() / 1000,
-                    httpOnly: true,
-                    name: "sessionid",
-                    path: "/",
-                    sameSite: null,
-                    secure: true,
-                    storeId: "0",
-                    value: "d47025bc41ee4fc3e5bd6ac7d1fed678",
-                    url: currentTabUrl,
-                });
-            })();
-
-            alert('Cookie set!');
+            removeFromStorage('tiktokSessions');
+            displaySessions(tiktokSessionsContainer, []);
         });
 
         // Add event listener to the play TikToks in background checkbox to save the setting to storage
@@ -157,6 +150,24 @@ document.addEventListener('DOMContentLoaded', function ()
         {
             const playTiktoksInBackground = document.getElementById('playTiktoksInBackground').checked;
             chrome.storage.sync.set({ playTiktoksInBackground: playTiktoksInBackground });
+        });
+
+        // TODO remove later
+        const e = document.getElementById('Export');
+        e.addEventListener('click', exportStorageData);
+
+        // TODO remove later
+        document.getElementById('importButton').addEventListener('click', () =>
+        {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0)
+            {
+                const file = fileInput.files[0];
+                importStorageData(file);
+            } else
+            {
+                console.log("No file selected.");
+            }
         });
 
         // Twitch
@@ -179,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function ()
         // Add event listener to the enable YouTube set quality checkbox to show/hide the quality settings container and save the setting to storage
         document.getElementById('enableYoutubeSetQuality').addEventListener('change', function ()
         {
-            onYoutubeSetQualitySwitch();
+            toggleYoutubeQualityContainer();
         });
 
         // Set the allow YouTube premium quality checkbox
@@ -362,7 +373,7 @@ function addNamazCheckboxesListeners(namazPrayed)
     });
 }
 
-function onYoutubeSetQualitySwitch()
+function toggleYoutubeQualityContainer()
 {
     const youtubeQualityContainer = document.getElementById('youtubeQualityContainer');
     const isEnabled = document.getElementById('enableYoutubeSetQuality').checked;
@@ -390,68 +401,89 @@ function onYoutubeSetQualitySwitch()
 
 
 
-function displayTiktokSessions(sessions)
+function displaySessions(container, sessions)
 {
-    const tiktokSessionsContainer = document.querySelector('#tiktokSessions');
-    tiktokSessionsContainer.innerHTML = '';
+    container.innerHTML = '';
 
     sessions.forEach(session =>
     {
         const button = document.createElement('button');
         button.textContent = session[0];
 
-        button.addEventListener('click', async () =>
+        button.addEventListener('click', () =>
         {
-            session[1].url = 'https://www.tiktok.com/';
-            session[1].expirationDate = null;
-            session[1].sameSite = null;
-            console.log(session[1]);
-            chrome.cookies.set(session[1]);
-            alert('Cookie set!');
-        });
-
-        tiktokSessionsContainer.appendChild(button);
-    });
-}
-
-async function getCookie(url, name)
-{
-    return new Promise((resolve, reject) =>
-    {
-        chrome.cookies.get({ url: url, name: name }, function (cookie)
-        {
-            resolve(cookie);
-        });
-    });
-}
-
-
-
-async function getCurrentTabUrl()
-{
-    return new Promise((resolve, reject) =>
-    {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
-        {
-            if (tabs.length > 0)
+            if (!tiktokCookie)
             {
-                resolve(tabs[0].url);
+                tiktokCookie = session[1];
+                chrome.runtime.sendMessage({ action: "setCookie", cookie: tiktokCookie });
             }
             else
             {
-                reject('No active tabs found');
+                tiktokCookie = null;
+                chrome.runtime.sendMessage({ action: "removeCookie" });
             }
+            // chrome.cookies.set(session[1]);
         });
+
+        container.appendChild(button);
     });
 }
 
-// function saveCookie(id, name, value, domain, path, expiration, sameSite, hostOnly, session, secure, httpOnly)
-// {
-//     const cookie =
-//     {
-//         name: name,
-//         value: value,
-//         expirationDate: null,
-//         session: true,
-//     }
-// }
+function removeFromStorage(keys)
+{
+    chrome.storage.sync.remove(keys);
+}
+
+function getBaseUrl(callback)
+{
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
+    {
+        if (tabs[0])
+        {
+            const url = new URL(tabs[0].url);
+            const baseUrl = `${url.protocol}//${url.hostname}`;
+            callback(baseUrl);
+        }
+    });
+}
+
+function getCookie(baseUrl, callback)
+{
+    chrome.cookies.get({ url: baseUrl, name: 'sessionid' }, (cookie) =>
+    {
+        callback(cookie);
+    });
+}
+
+
+
+
+
+function exportStorageData()
+{
+    chrome.storage.sync.get(null, (items) =>
+    {
+        const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'storage-data.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+// Import function
+function importStorageData(file)
+{
+    const reader = new FileReader();
+    reader.onload = (event) =>
+    {
+        const data = JSON.parse(event.target.result);
+        chrome.storage.sync.set(data, () =>
+        {
+            console.log('Data imported successfully');
+        });
+    };
+    reader.readAsText(file);
+}
