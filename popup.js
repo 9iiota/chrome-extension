@@ -8,15 +8,11 @@ chrome.storage.sync.get("lastPopupOpenDate", (storage) =>
     const currentDateString = getCurrentDateString();
     if (storage.lastPopupOpenDate && storage.lastPopupOpenDate !== currentDateString)
     {
-        // If new day, reset the namazPrayed array and send a message to the background script to rerun the interval task
         chrome.runtime.sendMessage({ action: "newDay" });
         chrome.storage.sync.set({ namazPrayed: [false, false, false, false, false, false] });
     }
-    else
-    {
-        // Log the current date to storage
-        chrome.storage.sync.set({ lastPopupOpenDate: currentDateString });
-    }
+
+    chrome.storage.sync.set({ lastPopupOpenDate: currentDateString });
 });
 
 // On popup content loaded
