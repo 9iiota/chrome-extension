@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function ()
 
         // Namaz
         // Set the city code
-        const { cityCode } = storage;
+        const cityCode = storage.cityCode || '13980'; // Default to Rotterdam if nothing is saved
         const cityCodeInput = document.getElementById('cityCode');
         cityCodeInput.value = cityCode;
 
@@ -59,11 +59,7 @@ document.addEventListener('DOMContentLoaded', function ()
             if (event.key === 'Enter' || event.key === 'Tab')
             {
                 const cityCode = document.getElementById('cityCode').value;
-
                 chrome.storage.sync.set({ cityCode: cityCode });
-                chrome.storage.sync.set({ namazTimesFormatted: [] });
-
-                chrome.runtime.sendMessage({ action: "cityCodeChanged", cityCode: cityCode });
             }
         });
 
