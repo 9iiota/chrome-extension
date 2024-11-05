@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
-	"name": "YouTube & TikTok Enhancer",
+	"name": "Enhancer",
+	"description": "Adds convenient features",
 	"version": "2.0",
-	"description": "Adds convenient features for YouTube and TikTok",
 	"options_page": "popup.html",
 	"permissions": [
 		"activeTab",
@@ -11,10 +11,6 @@
 		"scripting",
 		"storage",
 		"tabs"
-	],
-	"host_permissions": [
-		"*://*.namazvakitleri.diyanet.gov.tr/*",
-		"*://*.tiktok.com/*"
 	],
 	"action": {
 		"default_popup": "popup.html",
@@ -27,20 +23,24 @@
 	},
 	"content_scripts": [
 		{
-			"matches": ["*://*.youtube.com/watch*"],
 			"css": ["styles.css"],
-			"js": ["youtube/content.js"]
+			"js": ["youtube/content.js"],
+			"matches": ["*://*.youtube.com/watch*"]
 		},
 		{
-            "matches": ["*://*.tiktok.com/*"],
             "css": ["styles.css"],
-            "js": ["tiktok/content.js"]
+            "js": ["tiktok/content.js"],
+            "matches": ["*://*.tiktok.com/*"]
         },
 		{
-            "matches": ["*://*.twitch.tv/*"],
             "css": ["styles.css"],
-            "js": ["twitch/content.js"]
+            "js": ["twitch/content.js"],
+            "matches": ["*://*.twitch.tv/*"]
         }
+	],
+	"host_permissions": [
+		"*://*.namazvakitleri.diyanet.gov.tr/*",
+		"*://*.tiktok.com/*"
 	],
 	"web_accessible_resources": [
 		{

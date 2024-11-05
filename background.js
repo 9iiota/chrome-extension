@@ -1,8 +1,6 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const nextImsakTimeRegex = /var nextImsakTime = "(\d+:\d+)";/;
 
-let tiktokCookie = null;
-
 let CURRENT_NAMAZ_INDEX;
 let CURRENT_NAMAZ_PRAYED = false;
 
@@ -27,14 +25,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
     {
         newDay();
     }
-    else if (message.action === "setCookie")
-    {
-        tiktokCookie = message.data;
-    }
-    else if (message.action === "removeCookie")
-    {
-        tiktokCookie = null;
-    }
 });
 
 // Used to keep the service worker alive
@@ -53,50 +43,14 @@ chrome.action.onClicked.addListener(() =>
 // Start namaz timer when the extension is installed
 chrome.runtime.onInstalled.addListener(() =>
 {
-    chrome.storage.sync.get(['cityCode', 'namazPrayed', 'namazTimesFormatted'], storage =>
-    {
-        CITY_CODE = storage.cityCode;
-        setBadgeData();
-
-        namazTimesFormatted = storage.namazTimesFormatted || [];
-        namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
-
-        const currentTimeSeconds = getCurrentTimeSeconds();
-        const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
-        CURRENT_NAMAZ_INDEX = currentNamazIndex;
-
-        if (storage.namazPrayed)
-        {
-            CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex];
-        }
-        else
-        {
-            CURRENT_NAMAZ_PRAYED = false;
-            chrome.storage.sync.set({ namazPrayed: Array(namazTimesFormatted.length).fill(false) });
-        }
-
-        startInterval();
-    });
+    setStorageValues();
+    idk();
 });
 
 // Start namaz timer when the extension is started
 chrome.runtime.onStartup.addListener(() =>
 {
-    chrome.storage.sync.get(['cityCode', 'namazPrayed', 'namazTimesFormatted'], storage =>
-    {
-        CITY_CODE = storage.cityCode;
-        setBadgeData();
-
-        namazTimesFormatted = storage.namazTimesFormatted || [];
-        namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
-
-        const currentTimeSeconds = getCurrentTimeSeconds();
-        const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
-        CURRENT_NAMAZ_INDEX = currentNamazIndex;
-        CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex] || false;
-
-        startInterval();
-    });
+    idk();
 });
 
 function rgbaArrayToHex(colorArray)
@@ -155,6 +109,10 @@ async function getNamazTimes(cityCode)
                 namazTimesFormatted.push(data.match(nextImsakTimeRegex)[1]);
                 resolve(namazTimesFormatted);
             })
+            .catch(() =>
+            {
+                resolve(false);
+            });
     });
 }
 
@@ -188,14 +146,12 @@ function getNextNamazIndex(currentTimeSeconds, namazTimeSeconds)
 
 function convertSecondsToHours(seconds)
 {
-    // Round down so 3599 seconds (59:59) returns 0
     return Math.floor(seconds / 3600);
 }
 
 function convertSecondsToMinutes(seconds)
 {
-    // Round up to the nearest minute so, for example, 179 seconds (2:59) returns 3
-    return Math.ceil(seconds / 60);
+    return Math.floor(seconds / 60);
 }
 
 function getCurrentTimeMilliseconds()
@@ -210,7 +166,7 @@ function getCurrentTimeMinutes()
     return now.getHours() * 60 + now.getMinutes();
 }
 
-function intervalTask()
+async function intervalTask()
 {
     const currentDateString = getCurrentDateString();
     if (namazTimesFormatted.length === 0 || namazTimesFormatted.at(-1) !== currentDateString)
@@ -225,11 +181,6 @@ function intervalTask()
             console.log('setNamazTimesFormatted');
         })();
     }
-
-    // if (namazTimesFormatted.at(-1) !== currentDateString)
-    // {
-
-    // }
 
     // Get the time until the next prayer
     const currentTimeSeconds = getCurrentTimeSeconds();
@@ -372,4 +323,73 @@ function newDay()
 {
     CURRENT_NAMAZ_PRAYED = false;
     intervalTask();
+}
+
+function setStorageValues()
+{
+    const storageKeys = [
+        'activeTab',
+        'allowYoutubePremiumQuality',
+        'cityCode',
+        'playTiktoksInBackground',
+        'enableYoutubeSetQuality',
+        'enableTwitchTheatreMode',
+        'youtubeMaxQuality',
+        'namazPrayed',
+        'namazTimesFormatted',
+        'tiktokSessions'
+    ]
+
+    const storageValues = [
+        'Namaz',
+        false,
+        '',
+        false,
+        false,
+        false,
+        '1080p',
+        Array(6).fill(false),
+        [],
+        []
+    ]
+
+    chrome.storage.sync.get(storageKeys, storage =>
+    {
+        for (const key of storageKeys)
+        {
+            if (!storage[key])
+            {
+                const index = storageKeys.indexOf(key);
+                chrome.storage.sync.set({ [key]: storageValues[index] });
+            }
+        }
+    });
+}
+
+function idk()
+{
+    chrome.storage.sync.get([
+        'cityCode',
+        'namazPrayed',
+        'namazTimesFormatted'
+    ], function (storage)
+    {
+        if (storage.cityCode)
+        {
+            console.log(storage.cityCode, storage.namazPrayed, storage.namazTimesFormatted);
+            CITY_CODE = storage.cityCode;
+            setBadgeData();
+
+            namazTimesFormatted = storage.namazTimesFormatted;
+            namazTimesSeconds = [] || namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time));
+
+            const currentTimeSeconds = getCurrentTimeSeconds();
+            const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
+
+            CURRENT_NAMAZ_INDEX = currentNamazIndex;
+            CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex];
+
+            restartInterval();
+        }
+    });
 }

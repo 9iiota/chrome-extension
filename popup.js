@@ -1,7 +1,5 @@
 const namazTimeRegex = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 
-let tiktokCookie = null;
-
 // On popup open
 chrome.storage.sync.get("lastPopupOpenDate", (storage) =>
 {
@@ -51,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function ()
 
         // Namaz
         // Set the city code
-        const cityCode = storage.cityCode || '13980'; // Default to Rotterdam if nothing is saved
+        const { cityCode } = storage;
         const cityCodeInput = document.getElementById('cityCode');
         cityCodeInput.value = cityCode;
 
@@ -61,85 +59,29 @@ document.addEventListener('DOMContentLoaded', function ()
             if (event.key === 'Enter' || event.key === 'Tab')
             {
                 const cityCode = document.getElementById('cityCode').value;
+
                 chrome.storage.sync.set({ cityCode: cityCode });
+                chrome.storage.sync.set({ namazTimesFormatted: [] });
+
+                chrome.runtime.sendMessage({ action: "cityCodeChanged", cityCode: cityCode });
             }
         });
 
         // Create the namaz checkboxes
-        const namazTimesFormatted = storage.namazTimesFormatted || [];
-        createNamazCheckboxes(namazTimesFormatted);
+        const { namazTimesFormatted } = storage;
+        if (namazTimesFormatted)
+        {
+            createNamazCheckboxes(namazTimesFormatted);
 
-        // Add event listeners to the namaz checkboxes to save the namazPrayed array to storage and send a message to the background script
-        const namazPrayed = storage.namazPrayed || Array(6).fill(false); // Default to none prayed if nothing is saved
-        addNamazCheckboxesListeners(namazPrayed);
+            // Add event listeners to the namaz checkboxes to save the namazPrayed array to storage and send a message to the background script
+            const { namazPrayed } = storage;
+            addNamazCheckboxesListeners(namazPrayed);
+        }
 
         // TikTok
         // Set the play TikToks in background checkbox
-        const playTiktoksInBackground = storage.playTiktoksInBackground || false;
+        const { playTiktoksInBackground } = storage;
         document.getElementById('playTiktoksInBackground').checked = playTiktoksInBackground;
-
-        // Display TikTok sessions
-        const tiktokSessionsContainer = document.getElementById('tiktokSessions');
-        const tiktokSessions = storage.tiktokSessions || [];
-        displaySessions(tiktokSessionsContainer, tiktokSessions);
-
-        // TODO Save tiktok session ID
-        document.getElementById('saveTiktokSession').addEventListener('click', (event) =>
-        {
-            const name = document.getElementById('tiktokSessionName').value;
-            if (!name)
-            {
-                alert('Please enter a name for the session ID');
-                return;
-            }
-
-            chrome.storage.sync.get(['tiktokSessions'], function (storage)
-            {
-                const tiktokSessions = storage.tiktokSessions || [];
-                getBaseUrl((baseUrl) =>
-                {
-                    getCookie(baseUrl, (cookie) =>
-                    {
-                        // Delete unnecessary properties
-                        delete cookie.hostOnly;
-                        delete cookie.session;
-
-                        cookie.url = baseUrl;
-
-                        console.log(cookie);
-
-                        // Check if session entry exists and update it
-                        const entry = [name, cookie];
-                        let exists = false;
-                        for (let i = 0; i < tiktokSessions.length; i++)
-                        {
-                            if (name === tiktokSessions[i][0])
-                            {
-                                tiktokSessions[i] = entry;
-                                exists = true;
-                                return;
-                            }
-                        }
-
-                        if (!exists)
-                        {
-                            tiktokSessions.push(entry);
-                        }
-
-                        chrome.storage.sync.set({ tiktokSessions: tiktokSessions });
-
-                        displaySessions(tiktokSessionsContainer, tiktokSessions);
-                    });
-                });
-            });
-        });
-
-        // Clear TikTok sessions
-        document.getElementById('clearTiktokSessions').addEventListener('click', () =>
-        {
-            removeFromStorage('tiktokSessions');
-            displaySessions(tiktokSessionsContainer, []);
-        });
 
         // Add event listener to the play TikToks in background checkbox to save the setting to storage
         document.getElementById('playTiktoksInBackground').addEventListener('change', function ()
@@ -168,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function ()
 
         // Twitch
         // Set the enable Twitch theatre mode checkbox
-        const enableTwitchTheatreMode = storage.enableTwitchTheatreMode || false;
+        const { enableTwitchTheatreMode } = storage;
         document.getElementById('enableTwitchTheatreMode').checked = enableTwitchTheatreMode;
 
         // Add event listener to the enable Twitch theatre mode checkbox to save the setting to storage
@@ -180,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function ()
 
         // YouTube
         // Set the enable YouTube set quality checkbox
-        const enableYoutubeSetQuality = storage.enableYoutubeSetQuality || false;
+        const { enableYoutubeSetQuality } = storage;
         document.getElementById('enableYoutubeSetQuality').checked = enableYoutubeSetQuality;
 
         // Add event listener to the enable YouTube set quality checkbox to show/hide the quality settings container and save the setting to storage
@@ -190,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function ()
         });
 
         // Set the allow YouTube premium quality checkbox
-        const allowYoutubePremiumQuality = storage.allowYoutubePremiumQuality || false;
+        const { allowYoutubePremiumQuality } = storage;
         document.getElementById('allowYoutubePremiumQuality').checked = allowYoutubePremiumQuality;
 
         // Add event listener to the allow YouTube premium quality checkbox to save the setting to storage
@@ -201,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function ()
         });
 
         // Set the YouTube max quality select
-        const youtubeMaxQuality = storage.youtubeMaxQuality || '1080p';
+        const { youtubeMaxQuality } = storage;
         document.getElementById('youtubeMaxQuality').value = youtubeMaxQuality;
 
         // Add event listener to the YouTube max quality select to save the selected quality to storage
@@ -281,6 +223,7 @@ function createNamazCheckboxes(namazTimesFormatted)
 {
     const namazTimesList = document.getElementById('namazTimesList');
     const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    namazTimesList.innerHTML = '';
 
     // Loop through the array except for the last two elements (next day's imsak [-2] and the date of the namaz times [-1])
     for (let i = 0; i < namazTimesFormatted.length - 2; i++)
@@ -386,74 +329,6 @@ function toggleYoutubeQualityContainer()
 
     chrome.storage.sync.set({ enableYoutubeSetQuality: isEnabled });
 }
-
-
-
-
-
-
-
-
-
-
-
-function displaySessions(container, sessions)
-{
-    container.innerHTML = '';
-
-    sessions.forEach(session =>
-    {
-        const button = document.createElement('button');
-        button.textContent = session[0];
-
-        button.addEventListener('click', () =>
-        {
-            if (!tiktokCookie)
-            {
-                tiktokCookie = session[1];
-                chrome.runtime.sendMessage({ action: "setCookie", cookie: tiktokCookie });
-            }
-            else
-            {
-                tiktokCookie = null;
-                chrome.runtime.sendMessage({ action: "removeCookie" });
-            }
-            // chrome.cookies.set(session[1]);
-        });
-
-        container.appendChild(button);
-    });
-}
-
-function removeFromStorage(keys)
-{
-    chrome.storage.sync.remove(keys);
-}
-
-function getBaseUrl(callback)
-{
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
-    {
-        if (tabs[0])
-        {
-            const url = new URL(tabs[0].url);
-            const baseUrl = `${url.protocol}//${url.hostname}`;
-            callback(baseUrl);
-        }
-    });
-}
-
-function getCookie(baseUrl, callback)
-{
-    chrome.cookies.get({ url: baseUrl, name: 'sessionid' }, (cookie) =>
-    {
-        callback(cookie);
-    });
-}
-
-
-
-
 
 function exportStorageData()
 {
