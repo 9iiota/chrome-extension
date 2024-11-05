@@ -258,10 +258,8 @@ async function intervalTask()
         console.log('setBadgeTextColor');
     }
 
-    // log the current date and time iso string
-    console.log(new Date().toISOString());
     chrome.action.setBadgeText({ text: formattedTime });
-    console.log('setBadgeText');
+    console.log('setBadgeText', new Date().toISOString());
 
     const currentTimeMilliseconds = getCurrentTimeMilliseconds();
     if (INTERVAL_MILLISECONDS === 1)
@@ -337,19 +335,17 @@ function setStorageValues()
         'youtubeMaxQuality',
         'namazPrayed',
         'namazTimesFormatted',
-        'tiktokSessions'
     ]
 
     const storageValues = [
         'Namaz',
         false,
-        '',
+        '13980',
         false,
         false,
         false,
         '1080p',
         Array(6).fill(false),
-        [],
         []
     ]
 
@@ -357,6 +353,7 @@ function setStorageValues()
     {
         for (const key of storageKeys)
         {
+            console.log(key, storage[key]);
             if (!storage[key])
             {
                 const index = storageKeys.indexOf(key);
@@ -374,22 +371,18 @@ function idk()
         'namazTimesFormatted'
     ], function (storage)
     {
-        if (storage.cityCode)
-        {
-            console.log(storage.cityCode, storage.namazPrayed, storage.namazTimesFormatted);
-            CITY_CODE = storage.cityCode;
-            setBadgeData();
+        CITY_CODE = storage.cityCode;
+        setBadgeData();
 
-            namazTimesFormatted = storage.namazTimesFormatted;
-            namazTimesSeconds = [] || namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time));
+        namazTimesFormatted = storage.namazTimesFormatted;
+        namazTimesSeconds = namazTimesFormatted.map(time => convertFormattedTimeToSeconds(time)) || [];
 
-            const currentTimeSeconds = getCurrentTimeSeconds();
-            const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
+        const currentTimeSeconds = getCurrentTimeSeconds();
+        const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, namazTimesSeconds);
 
-            CURRENT_NAMAZ_INDEX = currentNamazIndex;
-            CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex];
+        CURRENT_NAMAZ_INDEX = currentNamazIndex;
+        CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex];
 
-            restartInterval();
-        }
+        restartInterval();
     });
 }
