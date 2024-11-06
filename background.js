@@ -338,15 +338,15 @@ function setStorageValues()
     ]
 
     const storageValues = [
-        'Namaz',
-        false,
-        '13980',
-        false,
-        false,
-        false,
-        '1080p',
-        Array(6).fill(false),
-        []
+        'Namaz', // activeTab
+        false, // allowYoutubePremiumQuality
+        '13980', // cityCode
+        false, // playTiktoksInBackground
+        false, // enableYoutubeSetQuality
+        false, // enableTwitchTheatreMode
+        '1080p', // youtubeMaxQuality
+        Array(6).fill(false), // namazPrayed
+        [] // namazTimesFormatted
     ]
 
     chrome.storage.sync.get(storageKeys, storage =>
