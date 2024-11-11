@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function ()
         'activeTab',
         'allowYoutubePremiumQuality',
         'cityCode',
+        'currentDate',
         'playTiktoksInBackground',
         'enableYoutubeSetQuality',
         'enableTwitchTheatreMode',
@@ -64,10 +65,10 @@ document.addEventListener('DOMContentLoaded', function ()
         });
 
         // Create the namaz checkboxes
-        const { namazTimesFormatted } = storage;
+        const { currentDate, namazTimesFormatted } = storage;
         if (namazTimesFormatted)
         {
-            createNamazCheckboxes(namazTimesFormatted);
+            createNamazCheckboxes(currentDate, namazTimesFormatted);
 
             // Add event listeners to the namaz checkboxes to save the namazPrayed array to storage and send a message to the background script
             const { namazPrayed } = storage;
@@ -215,14 +216,14 @@ function openActiveTab(activeTab = null)
     }
 }
 
-function createNamazCheckboxes(namazTimesFormatted)
+function createNamazCheckboxes(currentDate, namazTimesFormatted)
 {
     const namazTimesList = document.getElementById('namazTimesList');
     const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-    namazTimesList.innerHTML = '';
+    namazTimesList.innerHTML = currentDate;
 
-    // Loop through the array except for the last two elements (next day's imsak [-2] and the date of the namaz times [-1])
-    for (let i = 0; i < namazTimesFormatted.length - 2; i++)
+    // Loop through the array except for the last two elements (next day's imsak [-1])
+    for (let i = 0; i < namazTimesFormatted.length - 1; i++)
     {
         const namazName = namazNames[i];
         const namazTimeFormatted = namazTimesFormatted[i];
