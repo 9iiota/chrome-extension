@@ -219,11 +219,11 @@ function openActiveTab(activeTab = null)
 function createNamazCheckboxes(currentDate, namazTimesFormatted)
 {
     const namazTimesList = document.getElementById('namazTimesList');
-    const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Fajr (next day)'];
     namazTimesList.innerHTML = currentDate;
 
     // Loop through the array except for the last two elements (next day's imsak [-1])
-    for (let i = 0; i < namazTimesFormatted.length - 1; i++)
+    for (let i = 0; i < namazTimesFormatted.length; i++)
     {
         const namazName = namazNames[i];
         const namazTimeFormatted = namazTimesFormatted[i];
@@ -304,7 +304,7 @@ function addNamazCheckboxesListeners(namazPrayed)
             const checkboxData = { index: index, isChecked: namazPrayed[index] };
 
             chrome.storage.sync.set({ namazPrayed: namazPrayed });
-            chrome.runtime.sendMessage({ action: "checkboxChanged", data: checkboxData });
+            chrome.runtime.sendMessage({ action: "namazCheckboxChanged", data: checkboxData });
         });
     });
 }

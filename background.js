@@ -19,9 +19,14 @@ chrome.alarms.onAlarm.addListener(() =>
 });
 
 // TODO citycode change, checkbox change
-// chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
-// {
-// });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
+{
+    if (message.action === 'namazCheckboxChanged')
+    {
+        const { index, isChecked } = message.data;
+        namazCheckboxChanged(index, isChecked);
+    }
+});
 
 // Open popup page when the extension icon is clicked
 chrome.action.onClicked.addListener(() =>
@@ -271,7 +276,7 @@ function getSecondsToNextNamaz()
 {
     const currentTimeSeconds = getCurrentTimeSeconds();
     const nextNamazIndex = CURRENT_NAMAZ_INDEX + 1;
-    if (!NAMAZ_TIMES_SECONDS[nextNamazIndex])
+    if (NAMAZ_TIMES_SECONDS[nextNamazIndex] === NAMAZ_TIMES_SECONDS.at(-1))
     {
         // Next namaz is the next day's imsak
         // 24 hours in seconds - current time in seconds + imsak time in seconds
@@ -329,29 +334,30 @@ function updateBadge()
 
     const secondsToNextNamaz = getSecondsToNextNamaz();
     let formattedTime;
-    if (secondsToNextNamaz > 3600)
+    if (secondsToNextNamaz < 60)
     {
-        // 1 hour or more left until the next namaz
-        const hours = convertSecondsToHours(secondsToNextNamaz);
-        const minutes = convertSecondsToMinutes(secondsToNextNamaz) % 60;
-        const paddedMinutes = String(minutes).padStart(2, '0');
-        formattedTime = `${hours}:${paddedMinutes}`;
+        formattedTime = `${secondsToNextNamaz}s`;
+        if (secondsToNextNamaz === 0)
+        {
+            CURRENT_NAMAZ_INDEX++;
+        }
+    }
+    else if (secondsToNextNamaz < 3600)
+    {
+        let minutes = Math.ceil(secondsToNextNamaz / 60);
+        formattedTime = `${minutes}m`;
+    }
+    else
+    {
+        let hours = Math.floor(secondsToNextNamaz / 3600);
+        let remainingMinutes = Math.floor((secondsToNextNamaz % 3600) / 60);
+        let remainingSeconds = secondsToNextNamaz % 60;
+        formattedTime = remainingSeconds === 0 ? `${remainingMinutes}m` : `${hours}:${remainingMinutes.toString().padStart(2, '0')}`;
 
         if (!CURRENT_NAMAZ_PRAYED)
         {
             badgeBackgroundColor = '#00ffff'; // Cyan
         }
-    }
-    else if (secondsToNextNamaz > 60)
-    {
-        // Less than 1 hour left until the next namaz but 1 minute or more left
-        const minutes = convertSecondsToMinutes(secondsToNextNamaz);
-        formattedTime = `${minutes}m`;
-    }
-    else
-    {
-        // Less than 1 minute left until the next namaz
-        formattedTime = `${secondsToNextNamaz}s`;
     }
 
     setBadgeColors(badgeBackgroundColor, badgeTextColor);
@@ -377,6 +383,7 @@ function badgeTask()
     const currentTimeSeconds = getCurrentTimeSeconds();
     if (!UPDATE_NAMAZ_TIMES_TASK_ID)
     {
+        // TODO: make this a function
         const secondsToTomorrowImsak = 86400 - currentTimeSeconds + NAMAZ_TIMES_SECONDS.at(-1);
         UPDATE_NAMAZ_TIMES_TASK_ID = setTimeout(() =>
         {
@@ -388,6 +395,7 @@ function badgeTask()
 
     updateBadge();
 
+    // TODO: maybe make this a function
     const currentTimeMilliseconds = getCurrentTimeMilliseconds();
     const secondsToNextNamaz = getSecondsToNextNamaz();
     let restart = true;
@@ -429,37 +437,11 @@ function badgeTask()
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function namazCheckboxChanged(index, isChecked)
 {
-    const currentTimeSeconds = getCurrentTimeSeconds();
-    const currentNamazIndex = getCurrentNamazIndex(currentTimeSeconds, NAMAZ_TIMES_SECONDS);
-    if (index === currentNamazIndex)
+    if (index === CURRENT_NAMAZ_INDEX)
     {
         CURRENT_NAMAZ_PRAYED = isChecked;
-        intervalTask();
+        updateBadge();
     }
-}
-
-function newDay()
-{
-    CURRENT_NAMAZ_PRAYED = false;
-    intervalTask();
 }
