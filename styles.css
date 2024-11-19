@@ -263,6 +263,51 @@
     vertical-align: middle;
 }
 
+.blurred-image
+{
+    filter: blur(10px);
+}
+
+.blurred-image:hover
+{
+    filter: blur(0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

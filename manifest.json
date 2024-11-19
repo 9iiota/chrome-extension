@@ -36,6 +36,11 @@
             "css": ["styles.css"],
             "js": ["twitch/content.js"],
             "matches": ["*://*.twitch.tv/*"]
+        },
+		{
+            "css": ["styles.css"],
+            "js": ["quran/content.js"],
+            "matches": ["*://*.quran.com/*"]
         }
 	],
 	"host_permissions": [

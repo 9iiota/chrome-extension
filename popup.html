@@ -10,6 +10,7 @@
 <body class="popup-body">
     <div class="tab">
         <button id="tiktok-button" class="tabButton">Namaz</button>
+        <button id="tiktok-button" class="tabButton">Quran</button>
         <button id="tiktok-button" class="tabButton">TikTok</button>
         <button id="tiktok-button" class="tabButton">Twitch</button>
         <button id="youtube-button" class="tabButton">YouTube</button>
@@ -23,6 +24,29 @@
             <label>Namaz Times</label>
             <div id="namazTimesList">
             </div>
+        </div>
+    </div>
+    <div id="Quran" class="tabContent">
+        <div>
+            <div class="checkbox-wrapper">
+                <input class="inp-cbx" id="blurQuranWords" type="checkbox" />
+                <label class="cbx" for="blurQuranWords">
+                    <span>
+                        <svg width="12px" height="10px">
+                            <use xlink:href="#check"></use>
+                        </svg>
+                    </span>
+                    <span>Blur words</span>
+                </label>
+                <svg class="inline-svg">
+                    <symbol id="check" viewbox="0 0 12 10">
+                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                    </symbol>
+                </svg>
+            </div>
+
+            <!-- <label>Continue playing in background:</label>
+                            <input type="checkbox" id="playTiktoksInBackground"> -->
         </div>
     </div>
     <div id="TikTok" class="tabContent">

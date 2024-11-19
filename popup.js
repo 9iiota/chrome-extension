@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function ()
     chrome.storage.sync.get([
         'activeTab',
         'allowYoutubePremiumQuality',
+        'blurQuranWords',
         'cityCode',
         'currentDate',
         'playTiktoksInBackground',
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function ()
     {
         openActiveTab(storage.activeTab);
 
-        // set display width
+        // Set display width
         const tabContentElements = document.getElementsByClassName("tabContent");
         for (let i = 0; i < tabContentElements.length; i++)
         {
@@ -74,6 +75,19 @@ document.addEventListener('DOMContentLoaded', function ()
             const { namazPrayed } = storage;
             addNamazCheckboxesListeners(namazPrayed);
         }
+
+        // Quran
+        // Set the blur Quran words checkbox
+        const { blurQuranWords } = storage;
+        document.getElementById('blurQuranWords').checked = blurQuranWords;
+
+        // Add event listener to the blur Quran words checkbox to save the setting to storage
+        document.getElementById('blurQuranWords').addEventListener('change', function ()
+        {
+            const blurQuranWords = document.getElementById('blurQuranWords').checked;
+            console.log(blurQuranWords);
+            chrome.storage.sync.set({ blurQuranWords: blurQuranWords });
+        });
 
         // TikTok
         // Set the play TikToks in background checkbox

@@ -1,9 +1,9 @@
 let video;
 let observer;
 
-chrome.storage.sync.get(['playTiktoksInBackground'], function (data)
+chrome.storage.sync.get(['playTiktoksInBackground'], function (storage)
 {
-    if (!data.playTiktoksInBackground)
+    if (!storage.playTiktoksInBackground)
     {
         return;
     }

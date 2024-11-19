@@ -64,6 +64,7 @@ function populateStorage()
     const storagePairs = [
         { key: 'activeTab', value: 'Namaz' },
         { key: 'allowYoutubePremiumQuality', value: false },
+        { key: 'blurQuranWords', value: false },
         { key: 'cityCode', value: '13980' },
         { key: 'currentDate', value: getCurrentDateString() },
         { key: 'playTiktoksInBackground', value: false },
