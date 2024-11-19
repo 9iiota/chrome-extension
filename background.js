@@ -166,6 +166,8 @@ async function updateNamazTimes()
     {
         NAMAZ_TIMES_FORMATTED = await syncFormattedNamazTimes(storage.cityCode);
 
+        chrome.storage.sync.set({ namazPrayed: Array(6).fill(false) });
+
         await new Promise((resolve, reject) =>
         {
             chrome.storage.sync.set({ currentDate: currentDateString }, () =>
@@ -315,32 +317,13 @@ function setBadgeColors(badgeBackgroundColor, badgeTextColor)
 
 function updateBadge()
 {
-    let badgeBackgroundColor;
-    let badgeTextColor = '#000000'; // Black
-    if (CURRENT_NAMAZ_PRAYED)
-    {
-        badgeBackgroundColor = '#00ff00'; // Green
-    }
-    else if (CURRENT_NAMAZ_INDEX === 1)
-    {
-        // Current namaz is sunrise
-        badgeBackgroundColor = '#808080'; // Gray
-        badgeTextColor = '#ffffff'; // White
-    }
-    else
-    {
-        badgeBackgroundColor = '#ff0000'; // Red
-    }
-
     const secondsToNextNamaz = getSecondsToNextNamaz();
+    let badgeBackgroundColor = '#ff0000'; // Red
+    let badgeTextColor = '#000000'; // Black
     let formattedTime;
     if (secondsToNextNamaz < 60)
     {
         formattedTime = `${secondsToNextNamaz}s`;
-        if (secondsToNextNamaz === 0)
-        {
-            CURRENT_NAMAZ_INDEX++;
-        }
     }
     else if (secondsToNextNamaz < 3600)
     {
@@ -358,6 +341,17 @@ function updateBadge()
         {
             badgeBackgroundColor = '#00ffff'; // Cyan
         }
+    }
+
+    if (CURRENT_NAMAZ_PRAYED)
+    {
+        badgeBackgroundColor = '#00ff00'; // Green
+    }
+    else if (CURRENT_NAMAZ_INDEX === 1)
+    {
+        // Current namaz is sunrise
+        badgeBackgroundColor = '#808080'; // Gray
+        badgeTextColor = '#ffffff'; // White
     }
 
     setBadgeColors(badgeBackgroundColor, badgeTextColor);
@@ -424,6 +418,13 @@ function badgeTask()
     {
         // Restart in 1 minute when the next namaz is more than 1 minute away
         SET_BADGE_TASK_INTERVAL_MILLISECONDS = 60000;
+    }
+    else if (secondsToNextNamaz === 0)
+    {
+        // Restart in 1 second when the next namaz is now
+        CURRENT_NAMAZ_INDEX++;
+        CURRENT_NAMAZ_PRAYED = false;
+        SET_BADGE_TASK_INTERVAL_MILLISECONDS = 1000;
     }
     else
     {
