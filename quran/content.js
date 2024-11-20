@@ -1,6 +1,16 @@
+const urlPattern = /https:\/\/quran\.com\/\d+/;
+const blurDelay = 50;
+let hoverTimeout;
+let lastHoveredLocation = '';
+
 chrome.storage.sync.get(['blurQuranWords'], function (storage)
 {
     if (!storage.blurQuranWords)
+    {
+        return;
+    }
+
+    if (!urlPattern.test(window.location.href))
     {
         return;
     }
@@ -20,16 +30,16 @@ function blurWords()
             if (!word.classList.contains('blurred-image') && !word.classList.contains('unblurred'))
             {
                 word.classList.add('blurred-image');
-                word.addEventListener('mouseenter', handleHover); // Add hover listener
-                word.addEventListener('mouseleave', handleUnhover); // Add unhover listener
+                word.addEventListener('mouseenter', handleHover);
+                word.addEventListener('mouseleave', handleUnhover);
             }
         }
     });
 
     const config = {
-        childList: true, // Detect addition or removal of child nodes
-        attributes: true, // Detect attribute changes
-        subtree: true // Observe all descendant nodes
+        childList: true,    // Detect addition or removal of child nodes
+        attributes: true,   // Detect attribute changes
+        subtree: true       // Observe all descendant nodes
     };
 
     observer.observe(targetNode, config);
@@ -39,14 +49,46 @@ function handleHover(event)
 {
     const hoveredWord = event.target;
     const hoveredLocation = hoveredWord.getAttribute('data-word-location');
-
     if (!hoveredLocation)
     {
         return;
     }
 
     const [hoveredSurah, hoveredAyah, hoveredWordIndex] = hoveredLocation.split(':').map(Number);
-    console.log(`Hovered: ${hoveredSurah}:${hoveredAyah}:${hoveredWordIndex}`);
+
+    // If the new hovered word is smaller (e.g., 1:1:3 after 1:1:5), instantly blur larger words
+    if (lastHoveredLocation)
+    {
+        const [lastSurah, lastAyah, lastWordIndex] = lastHoveredLocation.split(':').map(Number);
+        if (
+            lastSurah === hoveredSurah &&
+            lastAyah === hoveredAyah &&
+            lastWordIndex > hoveredWordIndex
+        )
+        {
+            // Blur larger words
+            let words = document.querySelectorAll('.unblurred');
+            for (const word of words)
+            {
+                const wordLocation = word.getAttribute('data-word-location');
+                if (!wordLocation)
+                {
+                    continue;
+                }
+
+                const [surah, ayah, wordIndex] = wordLocation.split(':').map(Number);
+                if (
+                    surah === hoveredSurah &&
+                    ayah === hoveredAyah &&
+                    wordIndex > hoveredWordIndex
+                )
+                {
+                    word.classList.remove('unblurred');
+                    word.classList.add('blurred-image');
+                }
+            }
+        }
+    }
 
     // Unblur words with a smaller `data-word-location`
     let words = document.querySelectorAll('.blurred-image');
@@ -59,28 +101,35 @@ function handleHover(event)
         }
 
         const [surah, ayah, wordIndex] = wordLocation.split(':').map(Number);
-
-        // Compare locations and unblur if smaller
-        if (surah === hoveredSurah && ayah === hoveredAyah && wordIndex <= hoveredWordIndex)
+        if (
+            surah === hoveredSurah &&
+            ayah === hoveredAyah &&
+            wordIndex <= hoveredWordIndex
+        )
         {
-            console.log(`Unblurring: ${surah}:${ayah}:${wordIndex}`);
             word.classList.remove('blurred-image');
-            word.classList.add('unblurred'); // Mark as unblurred
+            word.classList.add('unblurred');
         }
     }
+
+    lastHoveredLocation = hoveredLocation;
+    clearTimeout(hoverTimeout);
 }
 
 function handleUnhover(event)
 {
-    const unhoveredWord = event.target;
+    clearTimeout(hoverTimeout);
 
-    // Re-blur all words by adding the 'blurred-image' class and removing the 'unblurred' class
-    let words = document.querySelectorAll('.unblurred');
-    for (const word of words)
+    hoverTimeout = setTimeout(() =>
     {
-        word.classList.remove('unblurred'); // Remove the unblurred class
-        word.classList.add('blurred-image'); // Add the blurred-image class back
-    }
+        // Re-blur all words
+        let words = document.querySelectorAll('.unblurred');
+        for (const word of words)
+        {
+            word.classList.remove('unblurred');
+            word.classList.add('blurred-image');
+        }
 
-    console.log("All words are re-blurred.");
+        lastHoveredLocation = '';
+    }, blurDelay);
 }
