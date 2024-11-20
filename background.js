@@ -1,10 +1,12 @@
 const NAMAZ_TIME_REGEX = /var _[a-zA-Z]+ = "(\d+:\d+)";/g;
 const NEXT_IMSAK_TIME_REGEX = /var nextImsakTime = "(\d+:\d+)";/;
+const TIKTOK_VIDEO_URL_REGEX = /https:\/\/www\.tiktok\.com\/@[^\/]+\/video\/\d+/;
 
 let BADGE_BACKGROUND_COLOR;
 let BADGE_TEXT_COLOR;
 let CURRENT_NAMAZ_INDEX;
 let CURRENT_NAMAZ_PRAYED;
+let CURRENT_TIKTOK_VIDEO_URL;
 let NAMAZ_TIMES_FORMATTED;
 let NAMAZ_TIMES_SECONDS;
 let SET_BADGE_TASK_ID;
@@ -25,6 +27,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
     {
         const { index, isChecked } = message.data;
         namazCheckboxChanged(index, isChecked);
+    }
+});
+
+// Create download button when the TikTok video page is loaded
+chrome.webNavigation.onHistoryStateUpdated.addListener(details =>
+{
+    console.log('onHistoryStateUpdated');
+    console.log(details);
+
+    if (TIKTOK_VIDEO_URL_REGEX.test(details.url))
+    {
+        if (CURRENT_TIKTOK_VIDEO_URL !== details.url)
+        {
+            CURRENT_TIKTOK_VIDEO_URL = details.url;
+        }
+
+        sendMessage("createDownloadButton");
+    }
+});
+
+// Send message to content script to download the TikTok video when the command is triggered
+chrome.commands.onCommand.addListener(function (command)
+{
+    if (command === "downloadTiktok" && TIKTOK_VIDEO_URL_REGEX.test(details.url))
+    {
+        sendMessage("downloadTiktok");
     }
 });
 
@@ -52,6 +80,15 @@ chrome.runtime.onStartup.addListener(async () =>
     await retrieveBadgeColors();
     SET_BADGE_TASK_ID = startTask(badgeTask, SET_BADGE_TASK_INTERVAL_MILLISECONDS);
 });
+
+function sendMessage(action)
+{
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) =>
+    {
+        const tabId = tabs[0].id;
+        chrome.tabs.sendMessage(tabId, { action: action });
+    });
+};
 
 function getCurrentDateString()
 {

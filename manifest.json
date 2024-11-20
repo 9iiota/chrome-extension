@@ -8,9 +8,11 @@
 		"activeTab",
 		"alarms",
 		"cookies",
+		"commands",
 		"scripting",
 		"storage",
-		"tabs"
+		"tabs",
+		"webNavigation"
 	],
 	"action": {
 		"default_popup": "popup.html",
@@ -21,6 +23,17 @@
 	"background": {
 		"service_worker": "background.js"
 	},
+	"commands": {
+        "downloadTiktok":
+		{
+			"suggested_key":
+			{
+				"default": "Alt+S",
+				"mac": "Command+S"
+			},
+			"description": "Download TikTok"
+        }
+    },
 	"content_scripts": [
 		{
 			"css": ["styles.css"],

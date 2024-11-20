@@ -1,7 +1,7 @@
-const urlPattern = /https:\/\/quran\.com\/\d+/;
-const blurDelay = 50;
-let hoverTimeout;
-let lastHoveredLocation = '';
+const URL_PATTERN = /https:\/\/quran\.com\/\d+/;
+const BLUR_DELAY = 50;
+let HOVER_TIMEOUT;
+let LAST_HOVERED_LOCATION = '';
 
 chrome.storage.sync.get(['blurQuranWords'], function (storage)
 {
@@ -10,7 +10,7 @@ chrome.storage.sync.get(['blurQuranWords'], function (storage)
         return;
     }
 
-    if (!urlPattern.test(window.location.href))
+    if (!URL_PATTERN.test(window.location.href))
     {
         return;
     }
@@ -57,9 +57,9 @@ function handleHover(event)
     const [hoveredSurah, hoveredAyah, hoveredWordIndex] = hoveredLocation.split(':').map(Number);
 
     // If the new hovered word is smaller (e.g., 1:1:3 after 1:1:5), instantly blur larger words
-    if (lastHoveredLocation)
+    if (LAST_HOVERED_LOCATION)
     {
-        const [lastSurah, lastAyah, lastWordIndex] = lastHoveredLocation.split(':').map(Number);
+        const [lastSurah, lastAyah, lastWordIndex] = LAST_HOVERED_LOCATION.split(':').map(Number);
         if (
             lastSurah === hoveredSurah &&
             lastAyah === hoveredAyah &&
@@ -112,15 +112,15 @@ function handleHover(event)
         }
     }
 
-    lastHoveredLocation = hoveredLocation;
-    clearTimeout(hoverTimeout);
+    LAST_HOVERED_LOCATION = hoveredLocation;
+    clearTimeout(HOVER_TIMEOUT);
 }
 
 function handleUnhover(event)
 {
-    clearTimeout(hoverTimeout);
+    clearTimeout(HOVER_TIMEOUT);
 
-    hoverTimeout = setTimeout(() =>
+    HOVER_TIMEOUT = setTimeout(() =>
     {
         // Re-blur all words
         let words = document.querySelectorAll('.unblurred');
@@ -130,6 +130,6 @@ function handleUnhover(event)
             word.classList.add('blurred-image');
         }
 
-        lastHoveredLocation = '';
-    }, blurDelay);
+        LAST_HOVERED_LOCATION = '';
+    }, BLUR_DELAY);
 }
