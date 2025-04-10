@@ -1,4 +1,4 @@
-const URL_PATTERN = /https:\/\/quran\.com\/\d+/;
+const URL_PATTERN = /quran\.com\/\d+/;
 const BLUR_DELAY = 50;
 let HOVER_TIMEOUT;
 let LAST_HOVERED_LOCATION = '';
@@ -9,6 +9,7 @@ chrome.storage.sync.get(['blurQuranWords'], function (storage)
     {
         return;
     }
+
 
     if (!URL_PATTERN.test(window.location.href))
     {

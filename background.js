@@ -370,7 +370,7 @@ function updateBadge()
     }
     else
     {
-        let hours = Math.floor(secondsToNextNamaz / 3600);
+        let hours = Math.floor(secondsToNextNamaz / 3600) % 24;
         let remainingMinutes = Math.floor((secondsToNextNamaz % 3600) / 60);
         let remainingSeconds = secondsToNextNamaz % 60;
         formattedTime = remainingSeconds === 0 ? `${remainingMinutes}m` : `${hours}:${remainingMinutes.toString().padStart(2, '0')}`;
@@ -478,7 +478,7 @@ function badgeTask()
 
 function namazCheckboxChanged(index, isChecked)
 {
-    if (index === CURRENT_NAMAZ_INDEX)
+    if (index === CURRENT_NAMAZ_INDEX && index !== 1) // Skip sunrise
     {
         CURRENT_NAMAZ_PRAYED = isChecked;
         updateBadge();
