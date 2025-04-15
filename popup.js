@@ -7,7 +7,7 @@ chrome.storage.sync.get("lastPopupOpenDate", (storage) =>
     if (storage.lastPopupOpenDate && storage.lastPopupOpenDate !== currentDateString)
     {
         chrome.runtime.sendMessage({ action: "newDay" });
-        chrome.storage.sync.set({ namazPrayed: [false, false, false, false, false, false] });
+        chrome.storage.sync.set({ namazPrayed: false });
     }
 
     chrome.storage.sync.set({ lastPopupOpenDate: currentDateString });
@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', function ()
         'tiktokSessions',
     ], function (storage)
     {
+        let isPrayed = storage.namazPrayed;
+
         openActiveTab(storage.activeTab);
 
         // Set display width
@@ -69,12 +71,21 @@ document.addEventListener('DOMContentLoaded', function ()
         const { currentDate, namazTimesFormatted } = storage;
         if (namazTimesFormatted)
         {
-            createNamazCheckboxes(currentDate, namazTimesFormatted);
-
-            // Add event listeners to the namaz checkboxes to save the namazPrayed array to storage and send a message to the background script
-            const { namazPrayed } = storage;
-            addNamazCheckboxesListeners(namazPrayed);
+            createNamazSpans(currentDate, namazTimesFormatted);
         }
+
+        const isPrayedButton = document.createElement('button');
+        isPrayedButton.id = 'isPrayedButton';
+        isPrayedButton.textContent = isPrayed ? 'Namaz not prayed' : 'Namaz prayed';
+        isPrayedButton.addEventListener('click', () =>
+        {
+            isPrayed = !isPrayed;
+            isPrayedButton.textContent = isPrayed ? 'Namaz prayed' : 'Namaz not prayed';
+            chrome.storage.sync.set({ namazPrayed: isPrayed });
+            chrome.runtime.sendMessage({ action: "isPrayed", data: isPrayed });
+        });
+        const namazTimesList = document.getElementById('namazTimesList');
+        namazTimesList.appendChild(isPrayedButton);
 
         // Quran
         // Set the blur Quran words checkbox
@@ -230,7 +241,7 @@ function openActiveTab(activeTab = null)
     }
 }
 
-function createNamazCheckboxes(currentDate, namazTimesFormatted)
+function createNamazSpans(currentDate, namazTimesFormatted)
 {
     const namazTimesList = document.getElementById('namazTimesList');
     const namazNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Fajr (next day)'];
@@ -242,85 +253,11 @@ function createNamazCheckboxes(currentDate, namazTimesFormatted)
         const namazName = namazNames[i];
         const namazTimeFormatted = namazTimesFormatted[i];
 
-        // Create the checkbox-wrapper div
-        const checkboxWrapper = document.createElement('div');
-        checkboxWrapper.classList.add('checkbox-wrapper');
-
-        // Create the checkbox input
-        const inputCheckbox = document.createElement('input');
-        inputCheckbox.classList.add('inp-cbx');
-        inputCheckbox.id = `${namazNames[i]}`; // Unique ID for each checkbox
-        inputCheckbox.type = 'checkbox';
-
-        // Create the label element
-        const label = document.createElement('label');
-        label.classList.add('cbx');
-        label.setAttribute('for', `${namazNames[i]}`); // Match label's `for` with the checkbox `id`
-
-        // Create the first span for the SVG
-        const spanSvg = document.createElement('span');
-
-        // Create the SVG element for the checkmark
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '12px');
-        svg.setAttribute('height', '10px');
-
-        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#check');
-        svg.appendChild(use);
-
-        // Append SVG to the first span
-        spanSvg.appendChild(svg);
-
-        // Create the second span for the label text
         const spanText = document.createElement('span');
         spanText.textContent = `${namazName}: ${namazTimeFormatted}`;
 
-        // Append spans to the label
-        label.appendChild(spanSvg);
-        label.appendChild(spanText);
-
-        // Append checkbox input and label to the wrapper
-        checkboxWrapper.appendChild(inputCheckbox);
-        checkboxWrapper.appendChild(label);
-
-        // Create the SVG symbol element for the checkmark definition
-        const svgSymbol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svgSymbol.classList.add('inline-svg');
-
-        const symbol = document.createElementNS('http://www.w3.org/2000/svg', 'symbol');
-        symbol.id = 'check';
-        symbol.setAttribute('viewBox', '0 0 12 10');
-
-        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        polyline.setAttribute('points', '1.5 6 4.5 9 10.5 1');
-        symbol.appendChild(polyline);
-
-        svgSymbol.appendChild(symbol);
-
-        // Append the symbol SVG to the wrapper
-        checkboxWrapper.appendChild(svgSymbol);
-
-        // Finally, append the checkbox-wrapper to the container
-        namazTimesList.appendChild(checkboxWrapper);
+        namazTimesList.appendChild(spanText);
     }
-}
-
-function addNamazCheckboxesListeners(namazPrayed)
-{
-    const namazCheckboxes = document.querySelectorAll("#namazTimesList input[type='checkbox']");
-    namazCheckboxes.forEach((checkbox, index) =>
-    {
-        checkbox.checked = namazPrayed[index];
-        checkbox.addEventListener("change", () =>
-        {
-            namazPrayed[index] = !namazPrayed[index];
-            const checkboxData = { index: index, isChecked: namazPrayed[index] };
-
-            chrome.storage.sync.set({ namazPrayed: namazPrayed });
-            chrome.runtime.sendMessage({ action: "namazCheckboxChanged", data: checkboxData });
-        });
-    });
 }
 
 function toggleYoutubeQualityContainer()

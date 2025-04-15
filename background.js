@@ -5,7 +5,7 @@ const TIKTOK_VIDEO_URL_REGEX = /https:\/\/www\.tiktok\.com\/@[^\/]+\/video\/\d+/
 let BADGE_BACKGROUND_COLOR;
 let BADGE_TEXT_COLOR;
 let CURRENT_NAMAZ_INDEX;
-let CURRENT_NAMAZ_PRAYED;
+let IS_PRAYED;
 let CURRENT_TIKTOK_VIDEO_URL;
 let NAMAZ_TIMES_FORMATTED;
 let NAMAZ_TIMES_SECONDS;
@@ -23,10 +23,11 @@ chrome.alarms.onAlarm.addListener(() =>
 // TODO citycode change, checkbox change
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
 {
-    if (message.action === 'namazCheckboxChanged')
+    if (message.action === 'isPrayed')
     {
-        const { index, isChecked } = message.data;
-        namazCheckboxChanged(index, isChecked);
+        IS_PRAYED = message.data;
+        console.log(IS_PRAYED);
+        updateBadge();
     }
 });
 
@@ -108,7 +109,7 @@ function populateStorage()
         { key: 'enableYoutubeSetQuality', value: false },
         { key: 'enableTwitchTheatreMode', value: false },
         { key: 'youtubeMaxQuality', value: '1080p' },
-        { key: 'namazPrayed', value: Array(6).fill(false) },
+        { key: 'namazPrayed', value: false },
         { key: 'namazTimesFormatted', value: [] },
     ]
 
@@ -204,7 +205,7 @@ async function updateNamazTimes()
     {
         NAMAZ_TIMES_FORMATTED = await syncFormattedNamazTimes(storage.cityCode);
 
-        chrome.storage.sync.set({ namazPrayed: Array(6).fill(false) });
+        chrome.storage.sync.set({ namazPrayed: false });
 
         await new Promise((resolve, reject) =>
         {
@@ -287,6 +288,7 @@ function getCurrentNamazIndex()
 
 async function updateCurrentNamaz()
 {
+    // TODO
     const currentNamazIndex = getCurrentNamazIndex();
     if (!CURRENT_NAMAZ_INDEX)
     {
@@ -302,12 +304,12 @@ async function updateCurrentNamaz()
                 resolve(result);
             });
         });
-        CURRENT_NAMAZ_PRAYED = storage.namazPrayed[currentNamazIndex];
+        IS_PRAYED = storage.namazPrayed;
     }
     else if (currentNamazIndex !== CURRENT_NAMAZ_INDEX)
     {
         CURRENT_NAMAZ_INDEX = currentNamazIndex;
-        CURRENT_NAMAZ_PRAYED = false;
+        IS_PRAYED = false;
     }
 }
 
@@ -375,15 +377,16 @@ function updateBadge()
         let remainingSeconds = secondsToNextNamaz % 60;
         formattedTime = remainingSeconds === 0 ? `${remainingMinutes}m` : `${hours}:${remainingMinutes.toString().padStart(2, '0')}`;
 
-        if (!CURRENT_NAMAZ_PRAYED)
+        if (!IS_PRAYED)
         {
             badgeBackgroundColor = '#00ffff'; // Cyan
         }
     }
 
-    if (CURRENT_NAMAZ_PRAYED)
+    if (IS_PRAYED)
     {
         badgeBackgroundColor = '#00ff00'; // Green
+        console.log("here");
     }
     else if (CURRENT_NAMAZ_INDEX === 1)
     {
@@ -461,7 +464,7 @@ function badgeTask()
     {
         // Restart in 1 second when the next namaz is now
         CURRENT_NAMAZ_INDEX++;
-        CURRENT_NAMAZ_PRAYED = false;
+        IS_PRAYED = false;
         SET_BADGE_TASK_INTERVAL_MILLISECONDS = 1000;
     }
     else
@@ -473,14 +476,5 @@ function badgeTask()
     {
         console.log(`Restarting badge task in ${SET_BADGE_TASK_INTERVAL_MILLISECONDS} milliseconds`);
         SET_BADGE_TASK_ID = restartTask(SET_BADGE_TASK_ID, badgeTask, SET_BADGE_TASK_INTERVAL_MILLISECONDS);
-    }
-}
-
-function namazCheckboxChanged(index, isChecked)
-{
-    if (index === CURRENT_NAMAZ_INDEX && index !== 1) // Skip sunrise
-    {
-        CURRENT_NAMAZ_PRAYED = isChecked;
-        updateBadge();
     }
 }
