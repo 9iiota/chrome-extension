@@ -76,11 +76,11 @@ document.addEventListener('DOMContentLoaded', function ()
 
         const isPrayedButton = document.createElement('button');
         isPrayedButton.id = 'isPrayedButton';
-        isPrayedButton.textContent = isPrayed ? 'Namaz not prayed' : 'Namaz prayed';
+        isPrayedButton.textContent = isPrayed ? 'PRAYED' : 'NOT PRAYED';
         isPrayedButton.addEventListener('click', () =>
         {
             isPrayed = !isPrayed;
-            isPrayedButton.textContent = isPrayed ? 'Namaz prayed' : 'Namaz not prayed';
+            isPrayedButton.textContent = isPrayed ? 'PRAYED' : 'NOT PRAYED';
             chrome.storage.sync.set({ namazPrayed: isPrayed });
             chrome.runtime.sendMessage({ action: "isPrayed", data: isPrayed });
         });

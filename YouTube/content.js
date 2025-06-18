@@ -572,12 +572,12 @@ function addLoopButton()
         loopIcon.src = chrome.runtime.getURL('images/loop-icon-24.png');
         loopIcon.className = 'loop-icon';
 
-        const loopTextNode = document.createTextNode('Loop');
+        // const loopTextNode = document.createTextNode('Loop');
 
         topLevelButtons.appendChild(ytButtonViewModel);
         ytButtonViewModel.appendChild(buttonViewModel);
         buttonViewModel.appendChild(loopButton);
         loopButton.appendChild(loopIcon);
-        loopButton.appendChild(loopTextNode);
+        // loopButton.appendChild(loopTextNode);
     }
 }

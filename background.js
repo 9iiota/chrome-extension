@@ -26,7 +26,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
     if (message.action === 'isPrayed')
     {
         IS_PRAYED = message.data;
-        console.log(IS_PRAYED);
         updateBadge();
     }
 });
@@ -67,6 +66,12 @@ chrome.action.onClicked.addListener(() =>
 chrome.runtime.onInstalled.addListener(async () =>
 {
     await populateStorage();
+    chrome.storage.sync.get([
+        'namazPrayed',
+    ], async function (storage)
+    {
+        IS_PRAYED = storage.namazPrayed;
+    });
     await updateNamazTimes();
     await updateCurrentNamaz();
     await retrieveBadgeColors();
@@ -293,18 +298,18 @@ async function updateCurrentNamaz()
     if (!CURRENT_NAMAZ_INDEX)
     {
         CURRENT_NAMAZ_INDEX = currentNamazIndex;
-        const storage = await new Promise((resolve, reject) =>
-        {
-            chrome.storage.sync.get('namazPrayed', (result) =>
-            {
-                if (chrome.runtime.lastError)
-                {
-                    return reject(new Error(chrome.runtime.lastError));
-                }
-                resolve(result);
-            });
-        });
-        IS_PRAYED = storage.namazPrayed;
+        // const storage = await new Promise((resolve, reject) =>
+        // {
+        //     chrome.storage.sync.get('namazPrayed', (result) =>
+        //     {
+        //         if (chrome.runtime.lastError)
+        //         {
+        //             return reject(new Error(chrome.runtime.lastError));
+        //         }
+        //         resolve(result);
+        //     });
+        // });
+        // IS_PRAYED = storage.namazPrayed;
     }
     else if (currentNamazIndex !== CURRENT_NAMAZ_INDEX)
     {
