@@ -66,16 +66,16 @@ chrome.action.onClicked.addListener(() =>
 chrome.runtime.onInstalled.addListener(async () =>
 {
     await populateStorage();
-    chrome.storage.sync.get([
-        'namazPrayed',
-    ], async function (storage)
-    {
-        IS_PRAYED = storage.namazPrayed;
-    });
-    await updateNamazTimes();
-    await updateCurrentNamaz();
-    await retrieveBadgeColors();
-    SET_BADGE_TASK_ID = startTask(badgeTask, SET_BADGE_TASK_INTERVAL_MILLISECONDS);
+    // chrome.storage.sync.get([
+    //     'namazPrayed',
+    // ], async function (storage)
+    // {
+    //     IS_PRAYED = storage.namazPrayed;
+    // });
+    // await updateNamazTimes();
+    // await updateCurrentNamaz();
+    // await retrieveBadgeColors();
+    // SET_BADGE_TASK_ID = startTask(badgeTask, SET_BADGE_TASK_INTERVAL_MILLISECONDS);
 });
 
 // Start namaz timer when the extension is started
