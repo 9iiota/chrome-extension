@@ -25,7 +25,7 @@ function blurWords()
 
     observer = new MutationObserver(function (mutationsList, observer)
     {
-        let words = document.querySelectorAll('.QuranWord_container__lmBE_.QuranWord_wbwContainer__REUuI.QuranWord_additionalWordGap__wEsc5');
+        let words = document.querySelectorAll("div[data-word-location]");
         for (const word of words)
         {
             if (!word.classList.contains('blurred-image') && !word.classList.contains('unblurred'))
